@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, tryOns, InsertTryOn, TryOn } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,88 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Create a new try-on record
+ */
+export async function createTryOn(data: InsertTryOn): Promise<TryOn | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create try-on: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(tryOns).values(data);
+    if (result[0]?.insertId) {
+      const created = await db.select().from(tryOns).where(eq(tryOns.id, result[0].insertId)).limit(1);
+      return created.length > 0 ? created[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to create try-on:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get all try-ons for a user, ordered by creation date (newest first)
+ */
+export async function getUserTryOns(userId: number, limit: number = 50, offset: number = 0): Promise<TryOn[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get try-ons: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(tryOns)
+      .where(eq(tryOns.userId, userId))
+      .orderBy(desc(tryOns.createdAt))
+      .limit(limit)
+      .offset(offset);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get try-ons:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get a single try-on by ID
+ */
+export async function getTryOnById(id: number): Promise<TryOn | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get try-on: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(tryOns).where(eq(tryOns.id, id)).limit(1);
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("[Database] Failed to get try-on:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a try-on record
+ */
+export async function deleteTryOn(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete try-on: database not available");
+    return false;
+  }
+
+  try {
+    await db.delete(tryOns).where(eq(tryOns.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete try-on:", error);
+    throw error;
+  }
+}
