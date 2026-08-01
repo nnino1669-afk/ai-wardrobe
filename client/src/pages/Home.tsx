@@ -11,7 +11,7 @@ export default function Home() {
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
-      setLocation("/try-on");
+      setLocation("/studio");
     } else {
       startLogin();
     }
@@ -29,8 +29,11 @@ export default function Home() {
             <span className="text-lg font-semibold">AI Wardrobe</span>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => setLocation("/help")}>
+              Help
+            </Button>
             {isAuthenticated ? (
-              <Button onClick={() => setLocation("/try-on")} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button onClick={() => setLocation("/studio")} className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 Open Studio
               </Button>
             ) : (
@@ -67,7 +70,7 @@ export default function Home() {
               variant="outline"
               size="lg"
               className="text-base h-12 px-8"
-              onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => setLocation("/help")}
             >
               Learn More
             </Button>

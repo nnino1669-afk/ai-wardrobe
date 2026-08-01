@@ -65,6 +65,47 @@ export const appRouter = router({
         return { success };
       }),
 
+    uploadImage: protectedProcedure
+      .input(
+        z.object({
+          imageData: z.string(), // base64 data URL
+          imageType: z.enum(["person", "garment"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          // Extract base64 from data URL
+          const matches = input.imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (!matches) {
+            return {
+              success: false,
+              error: "Invalid image data format",
+            };
+          }
+
+          const [, format, base64] = matches;
+          const buffer = Buffer.from(base64, "base64");
+
+          // Upload to S3
+          const uploadResult = await storagePut(
+            `input-images/${ctx.user.id}/${input.imageType}/${Date.now()}.${format}`,
+            buffer,
+            `image/${format}`
+          );
+
+          return {
+            success: true,
+            imageUrl: uploadResult.url,
+          };
+        } catch (error) {
+          console.error("[TryOn] Error uploading image:", error);
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to upload image",
+          };
+        }
+      }),
+
     process: protectedProcedure
       .input(
         z.object({

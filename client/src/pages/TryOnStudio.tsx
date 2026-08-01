@@ -62,8 +62,52 @@ export default function TryOnStudio() {
     setResultImage("");
 
     try {
-      // Use tRPC mutation hook to call backend
-      const mutation = trpc.tryOn.process.useMutation({
+      // Upload person image to S3
+      const personUploadMutation = trpc.tryOn.uploadImage.useMutation();
+      const personUploadResult = await new Promise<any>((resolve) => {
+        personUploadMutation.mutate(
+          {
+            imageData: personPreview,
+            imageType: "person",
+          },
+          {
+            onSuccess: (result) => resolve(result),
+            onError: () => resolve({ success: false }),
+          }
+        );
+      });
+
+      if (!personUploadResult?.success) {
+        setProcessingError("Failed to upload person image");
+        toast.error("Failed to upload person image");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Upload garment image to S3
+      const garmentUploadMutation = trpc.tryOn.uploadImage.useMutation();
+      const garmentUploadResult = await new Promise<any>((resolve) => {
+        garmentUploadMutation.mutate(
+          {
+            imageData: garmentPreview,
+            imageType: "garment",
+          },
+          {
+            onSuccess: (result) => resolve(result),
+            onError: () => resolve({ success: false }),
+          }
+        );
+      });
+
+      if (!garmentUploadResult?.success) {
+        setProcessingError("Failed to upload garment image");
+        toast.error("Failed to upload garment image");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Process virtual try-on with S3 URLs
+      const processMutation = trpc.tryOn.process.useMutation({
         onSuccess: (result) => {
           if (result.success) {
             setResultImage(result.resultImageUrl || "");
@@ -82,9 +126,9 @@ export default function TryOnStudio() {
         },
       });
 
-      mutation.mutate({
-        personImageUrl: personPreview,
-        garmentImageUrl: garmentPreview,
+      processMutation.mutate({
+        personImageUrl: personUploadResult?.imageUrl || "",
+        garmentImageUrl: garmentUploadResult?.imageUrl || "",
         clothType,
         personSelector: isGroupPhoto ? personSelector : undefined,
       });
