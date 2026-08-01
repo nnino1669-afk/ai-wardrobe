@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PersonSelector } from "@/components/PersonSelector";
 import { BeforeAfterComparison } from "@/components/BeforeAfterComparison";
+import { ShareButtons } from "@/components/ShareButtons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type ClothType = "upper" | "lower" | "overall" | "inner" | "outer";
@@ -299,14 +300,21 @@ export default function TryOnStudio() {
                     beforeLabel="Original"
                     afterLabel="Try-On Result"
                   />
-                  <Button
-                    onClick={handleDownload}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Result
-                  </Button>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={handleDownload}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Result
+                    </Button>
+                    <ShareButtons
+                      imageUrl={resultImage}
+                      title="Check out my AI Wardrobe try-on!"
+                      description="I created this virtual try-on using AI Wardrobe. See how clothes look on me before buying!"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center">

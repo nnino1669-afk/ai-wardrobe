@@ -6,6 +6,7 @@ import { ArrowLeft, Trash2, Download, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { ShareButtons } from "@/components/ShareButtons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -138,24 +139,31 @@ export default function History() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleDownload(tryOn.resultImageUrl, index)}
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Download
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setDeleteId(tryOn.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div className="space-y-2 pt-2">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleDownload(tryOn.resultImageUrl, index)}
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteId(tryOn.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <ShareButtons
+                      imageUrl={tryOn.resultImageUrl}
+                      title={`Check out my AI Wardrobe ${clothTypeLabels[tryOn.clothType] || 'try-on'}!`}
+                      description="I created this virtual try-on using AI Wardrobe. See how clothes look on me before buying!"
+                    />
                   </div>
                 </div>
               </Card>
