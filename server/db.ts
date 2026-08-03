@@ -1,6 +1,6 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, tryOns, InsertTryOn, TryOn } from "../drizzle/schema";
+import { InsertUser, users, tryOns, InsertTryOn, TryOn, garments, Garment, garmentCategories, GarmentCategory, wishlists } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -171,6 +171,138 @@ export async function deleteTryOn(id: number): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("[Database] Failed to delete try-on:", error);
+    throw error;
+  }
+}
+
+
+/**
+ * Get all garment categories
+ */
+export async function getGarmentCategories(): Promise<GarmentCategory[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get categories: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(garmentCategories)
+      .orderBy(garmentCategories.displayOrder);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get categories:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get all active garments, optionally filtered by category and cloth type
+ */
+export async function getGarments(categoryId?: number, clothType?: string): Promise<Garment[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get garments: database not available");
+    return [];
+  }
+
+  try {
+    let query: any = db.select().from(garments).where(eq(garments.isActive, 1));
+    
+    if (categoryId) {
+      query = query.where(eq(garments.categoryId, categoryId));
+    }
+    
+    if (clothType) {
+      query = query.where(eq(garments.clothType, clothType as any));
+    }
+    
+    const result = await query;
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get garments:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get a single garment by ID
+ */
+export async function getGarmentById(id: number): Promise<Garment | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get garment: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(garments).where(eq(garments.id, id)).limit(1);
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("[Database] Failed to get garment:", error);
+    throw error;
+  }
+}
+
+/**
+ * Add garment to user's wishlist
+ */
+export async function addToWishlist(userId: number, garmentId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot add to wishlist: database not available");
+    return false;
+  }
+
+  try {
+    await db.insert(wishlists).values({ userId, garmentId });
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to add to wishlist:", error);
+    throw error;
+  }
+}
+
+/**
+ * Remove garment from user's wishlist
+ */
+export async function removeFromWishlist(userId: number, garmentId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot remove from wishlist: database not available");
+    return false;
+  }
+
+  try {
+    await db.delete(wishlists).where(and(eq(wishlists.userId, userId), eq(wishlists.garmentId, garmentId)));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to remove from wishlist:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's wishlist
+ */
+export async function getUserWishlist(userId: number): Promise<Garment[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get wishlist: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select({ garment: garments })
+      .from(wishlists)
+      .innerJoin(garments, eq(wishlists.garmentId, garments.id))
+      .where(eq(wishlists.userId, userId));
+    return result.map(r => r.garment);
+  } catch (error) {
+    console.error("[Database] Failed to get wishlist:", error);
     throw error;
   }
 }

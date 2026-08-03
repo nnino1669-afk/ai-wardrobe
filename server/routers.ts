@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById } from "./db";
+import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById, getGarmentCategories, getGarments, getGarmentById, addToWishlist, removeFromWishlist, getUserWishlist } from "./db";
 import { generateVirtualTryOn } from "./vton";
 import { storagePut } from "./storage";
 
@@ -174,6 +174,49 @@ export const appRouter = router({
             error: error instanceof Error ? error.message : "Unknown error",
           };
         }
+      }),
+  }),
+
+  catalog: router({
+    categories: publicProcedure.query(async () => {
+      return await getGarmentCategories();
+    }),
+
+    garments: publicProcedure
+      .input(
+        z.object({
+          categoryId: z.number().optional(),
+          clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]).optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        return await getGarments(input.categoryId, input.clothType);
+      }),
+
+    garmentDetail: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await getGarmentById(input.id);
+      }),
+  }),
+
+  wishlist: router({
+    add: protectedProcedure
+      .input(z.object({ garmentId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const success = await addToWishlist(ctx.user.id, input.garmentId);
+        return { success };
+      }),
+
+    remove: protectedProcedure
+      .input(z.object({ garmentId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const success = await removeFromWishlist(ctx.user.id, input.garmentId);
+        return { success };
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+        return await getUserWishlist(ctx.user.id);
       }),
   }),
 });

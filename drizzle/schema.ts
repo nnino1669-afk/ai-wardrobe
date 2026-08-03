@@ -50,3 +50,74 @@ export const tryOns = mysqlTable("tryOns", {
 
 export type TryOn = typeof tryOns.$inferSelect;
 export type InsertTryOn = typeof tryOns.$inferInsert;
+
+/**
+ * Garment categories for organizing the clothing catalog.
+ */
+export const garmentCategories = mysqlTable("garmentCategories", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  displayOrder: int("displayOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type GarmentCategory = typeof garmentCategories.$inferSelect;
+export type InsertGarmentCategory = typeof garmentCategories.$inferInsert;
+
+/**
+ * Clothing catalog table storing all available garments.
+ * Each garment has an image URL (S3), metadata, and pricing.
+ */
+export const garments = mysqlTable("garments", {
+  id: int("id").autoincrement().primaryKey(),
+  categoryId: int("categoryId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  imageUrl: text("imageUrl").notNull(),
+  clothType: mysqlEnum("clothType", ["upper", "lower", "overall", "inner", "outer"]).notNull(),
+  color: varchar("color", { length: 50 }),
+  sizes: varchar("sizes", { length: 100 }).default("XS,S,M,L,XL,XXL"),
+  price: int("price"),
+  brand: varchar("brand", { length: 100 }),
+  rating: int("rating").default(0),
+  reviewCount: int("reviewCount").default(0),
+  isActive: int("isActive").default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Garment = typeof garments.$inferSelect;
+export type InsertGarment = typeof garments.$inferInsert;
+
+/**
+ * User outfits - combinations of garments saved by users.
+ */
+export const outfits = mysqlTable("outfits", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  garmentIds: text("garmentIds").notNull(),
+  previewImageUrl: text("previewImageUrl"),
+  rating: int("rating").default(0),
+  isPublic: int("isPublic").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Outfit = typeof outfits.$inferSelect;
+export type InsertOutfit = typeof outfits.$inferInsert;
+
+/**
+ * User wishlist - garments saved for later purchase.
+ */
+export const wishlists = mysqlTable("wishlists", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  garmentId: int("garmentId").notNull(),
+  addedAt: timestamp("addedAt").defaultNow().notNull(),
+});
+
+export type Wishlist = typeof wishlists.$inferSelect;
+export type InsertWishlist = typeof wishlists.$inferInsert;
