@@ -18,8 +18,8 @@
 
 ## Phase 3: Virtual Try-On with Body Awareness
 - [x] Update TryOnStudio to use catalog garments instead of uploads
-- [ ] Implement body detection for user's uploaded photo
-- [ ] Create clothing fitting algorithm based on body proportions
+- [x] Implement body detection for user's uploaded photo
+- [x] Create clothing fitting algorithm based on body proportions
 - [x] Integrate Hugging Face API for realistic garment placement
 - [x] Add try-on preview with before/after comparison
 - [x] Handle different clothing types (upper, lower, full outfit, inner, and outer)
@@ -66,15 +66,15 @@
 - [x] Document current model limitations and unsupported guarantees honestly
 
 ## Phase 4: Outfit Workflow
-- [ ] Support selecting more than one compatible garment for an outfit
-- [ ] Save and reload outfit combinations for the current user
-- [ ] Compare generated looks side by side
+- [x] Support selecting more than one compatible garment for an outfit
+- [x] Save and reload outfit combinations for the current user
+- [x] Compare generated looks side by side
 
 ## Phase 5: Final QA
-- [ ] Run all Vitest tests and TypeScript checks
-- [ ] Verify studio, catalog, history, help, and sharing routes visually
-- [ ] Save a stable checkpoint after the fixes are verified
-- [ ] Mark completed work accurately in todo.md
+- [x] Run all Vitest tests and TypeScript checks
+- [x] Verify studio, catalog, history, help, and sharing routes visually
+- [x] Save a stable checkpoint after the fixes are verified
+- [x] Mark completed work accurately in todo.md
 
 Previous catalog work remains tracked above and is not removed.
 
@@ -135,7 +135,7 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Validate person and garment URLs before calling the VTON adapter
 - [x] Add regression tests for relative, absolute, and invalid image URLs
 - [x] Re-run the full test suite and visual QA
-- [ ] Save a corrected checkpoint
+- [x] Save a corrected checkpoint
 
 ## Catalog Expansion
 - [x] Audit existing seed script and catalog categories

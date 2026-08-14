@@ -9,6 +9,7 @@ import { resolveInferenceUrl, storageGetSignedUrl, storagePut } from "./storage"
 import { cropSelectedPerson } from "./personCrop";
 import { analyzePersonImage } from "./bodyAware";
 import { optimizeUploadedImage } from "./imageOptimization";
+import { prepareBodyAwareInferenceImage } from "./bodyFitPreprocess";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -120,6 +121,16 @@ export const appRouter = router({
           clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]),
           model: z.enum(["idmvton", "catvton"]).default("idmvton"),
           personSelector: z.string().optional(),
+          bodyFitPlan: z.object({
+            confidence: z.number().min(0).max(1),
+            bodyBox: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), width: z.number().min(0).max(1), height: z.number().min(0).max(1) }),
+            shoulderWidth: z.number().min(0).max(1),
+            hipWidth: z.number().min(0).max(1),
+            torsoRatio: z.number().positive(),
+            fitScale: z.number().min(0.5).max(1.5),
+            verticalAnchor: z.number().min(0).max(1),
+            detectedAt: z.number().int().positive(),
+          }).optional(),
           name: z.string().optional(),
         })
       )
@@ -131,18 +142,22 @@ export const appRouter = router({
             ? await cropSelectedPerson(personImageUrl, input.personSelector, ctx.user.id)
             : null;
           const effectivePersonImageUrl = selectedPersonImage?.inferenceUrl || personImageUrl;
+          const inferencePersonImageUrl = input.bodyFitPlan && !selectedPersonImage
+            ? await prepareBodyAwareInferenceImage(effectivePersonImageUrl, input.bodyFitPlan, ctx.user.id)
+            : effectivePersonImageUrl;
           const fitProfile = await analyzePersonImage(
-            effectivePersonImageUrl,
+            inferencePersonImageUrl,
             selectedPersonImage ? { x: 0, y: 0, width: 1, height: 1 } : undefined,
           );
 
           // Call Hugging Face API to generate virtual try-on
           const vtonResult = await generateVirtualTryOn({
-            personImageUrl: effectivePersonImageUrl,
+            personImageUrl: inferencePersonImageUrl,
             garmentImageUrl,
             clothType: input.clothType,
             model: input.model,
             fitProfile,
+            bodyFitPlan: input.bodyFitPlan,
           });
 
           if (!vtonResult.success || !vtonResult.imageUrl) {

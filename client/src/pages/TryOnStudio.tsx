@@ -14,6 +14,8 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
 import { OutfitBuilder } from "@/components/OutfitBuilder";
 import { StyleProfileCard } from "@/components/StyleProfileCard";
+import { BodyCalibration } from "@/components/BodyCalibration";
+import type { BodyFitPlan } from "@/lib/bodyFit";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type ClothType = "upper" | "lower" | "overall" | "inner" | "outer";
@@ -44,6 +46,7 @@ export default function TryOnStudio() {
   const [personSelector, setPersonSelector] = useState("");
   const [isGroupPhoto, setIsGroupPhoto] = useState(false);
   const [processingError, setProcessingError] = useState("");
+  const [bodyFitPlan, setBodyFitPlan] = useState<BodyFitPlan | null>(null);
 
   const uploadImageMutation = trpc.tryOn.uploadImage.useMutation();
   const processMutation = trpc.tryOn.process.useMutation();
@@ -62,6 +65,7 @@ export default function TryOnStudio() {
     setPersonImage(file);
     setPersonPreview(preview);
     setPersonSelector("");
+    setBodyFitPlan(null);
     setResultImage("");
   };
 
@@ -125,6 +129,7 @@ export default function TryOnStudio() {
         clothType,
         model: selectedModel,
         personSelector: isGroupPhoto ? personSelector : undefined,
+        bodyFitPlan: bodyFitPlan ?? undefined,
         name: `${selectedGarment.name} on mannequin`,
       });
 
@@ -217,6 +222,7 @@ export default function TryOnStudio() {
                       isGroupPhoto
                     />
                   )}
+                  <BodyCalibration preview={personPreview} clothType={clothType} onPlanChange={setBodyFitPlan} />
                 </div>
               )}
             </Card>

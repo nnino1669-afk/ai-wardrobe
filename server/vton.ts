@@ -34,12 +34,24 @@ type GradioResult = {
   data?: unknown[];
 };
 
+type BodyFitPlan = {
+  confidence: number;
+  bodyBox: { x: number; y: number; width: number; height: number };
+  shoulderWidth: number;
+  hipWidth: number;
+  torsoRatio: number;
+  fitScale: number;
+  verticalAnchor: number;
+  detectedAt: number;
+};
+
 interface VTONRequest {
   personImageUrl: string;
   garmentImageUrl: string;
   clothType: ClothType;
   model?: ModelType;
   fitProfile?: PersonFitProfile;
+  bodyFitPlan?: BodyFitPlan;
 }
 
 interface VTONResponse {
@@ -105,7 +117,7 @@ async function callIdmVton(request: VTONRequest): Promise<string> {
           composite: null,
         },
         garm_img: handle_file(request.garmentImageUrl),
-        garment_des: `${describeClothType(request.clothType)}. Preserve the subject's proportions and selected region; this is a visual estimate, not a physical fit guarantee.${request.fitProfile ? ` Source aspect ratio ${request.fitProfile.aspectRatio}.` : ""}`,
+        garment_des: `${describeClothType(request.clothType)}. Preserve the subject's proportions and selected region; this is a visual estimate, not a physical fit guarantee.${request.fitProfile ? ` Source aspect ratio ${request.fitProfile.aspectRatio}.` : ""}${request.bodyFitPlan ? ` Body landmark calibration: shoulder ratio ${request.bodyFitPlan.shoulderWidth}, hip ratio ${request.bodyFitPlan.hipWidth}, fit scale ${request.bodyFitPlan.fitScale}, vertical anchor ${request.bodyFitPlan.verticalAnchor}.` : ""}`,
         is_checked: true,
         is_checked_crop: false,
         denoise_steps: 30,
@@ -138,6 +150,7 @@ async function callCatVton(request: VTONRequest): Promise<string> {
       garment_image: garmentImageBase64,
       cloth_type: mapClothType(request.clothType),
       fit_profile: request.fitProfile ?? null,
+      body_fit_plan: request.bodyFitPlan ?? null,
     },
   });
 
