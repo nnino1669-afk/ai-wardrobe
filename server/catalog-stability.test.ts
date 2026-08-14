@@ -20,6 +20,14 @@ describe("CatalogBrowser stability", () => {
     expect(source).toContain("utils.wishlist.list.invalidate()");
   });
 
+  it("includes sorting controls and a detail-to-try-on flow", () => {
+    expect(source).toContain('aria-label="Sort garments"');
+    expect(source).toContain('value="priceAsc"');
+    expect(source).toContain('value="popularity"');
+    expect(source).toContain("onOpenDetails={setDetailGarment}");
+    expect(source).toContain("Try this garment on");
+  });
+
   it("renders garment sizes and explicit catalog query error states", () => {
     expect(source).toContain("garment.sizes");
     expect(source).toContain("categoriesError");

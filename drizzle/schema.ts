@@ -121,3 +121,32 @@ export const wishlists = mysqlTable("wishlists", {
 
 export type Wishlist = typeof wishlists.$inferSelect;
 export type InsertWishlist = typeof wishlists.$inferInsert;
+
+/**
+ * User-authored garment reviews. No seed or fabricated review content is stored.
+ */
+export const garmentReviews = mysqlTable("garmentReviews", {
+  id: int("id").autoincrement().primaryKey(),
+  garmentId: int("garmentId").notNull(),
+  userId: int("userId").notNull(),
+  rating: int("rating").notNull(),
+  review: text("review"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GarmentReview = typeof garmentReviews.$inferSelect;
+export type InsertGarmentReview = typeof garmentReviews.$inferInsert;
+
+export const styleProfiles = mysqlTable("styleProfiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  preferredColor: varchar("preferredColor", { length: 50 }).default(""),
+  preferredFit: mysqlEnum("preferredFit", ["relaxed", "regular", "tailored"]).default("regular").notNull(),
+  preferredOccasion: mysqlEnum("preferredOccasion", ["everyday", "work", "evening", "active"]).default("everyday").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StyleProfile = typeof styleProfiles.$inferSelect;
+export type InsertStyleProfile = typeof styleProfiles.$inferInsert;

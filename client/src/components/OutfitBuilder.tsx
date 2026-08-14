@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Bookmark, Loader2, Trash2 } from "lucide-react";
+import { ShareButtons } from "@/components/ShareButtons";
 import { toast } from "sonner";
 
 type OutfitGarment = {
@@ -15,6 +16,7 @@ type OutfitGarment = {
 
 interface OutfitBuilderProps {
   garments: OutfitGarment[];
+  onLoadOutfit?: (garments: OutfitGarment[]) => void;
 }
 
 type CatalogCategoryLookup = {
@@ -52,8 +54,9 @@ function parseGarmentIds(value: string): number[] {
   }
 }
 
-export function OutfitBuilder({ garments }: OutfitBuilderProps) {
+export function OutfitBuilder({ garments, onLoadOutfit }: OutfitBuilderProps) {
   const [name, setName] = useState("");
+  const [compareOutfitIds, setCompareOutfitIds] = useState<number[]>([]);
   const utils = trpc.useUtils();
   const { data: savedOutfits = [], isLoading } = trpc.outfits.list.useQuery();
   const { data: catalogGarments = [] } = trpc.catalog.garments.useQuery({});
@@ -74,6 +77,17 @@ export function OutfitBuilder({ garments }: OutfitBuilderProps) {
   });
 
   const selectedIds = useMemo(() => garments.map((garment) => garment.id), [garments]);
+
+  const handleToggleCompare = (id: number) => {
+    setCompareOutfitIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= 2) {
+        toast.error("Compare up to two saved looks at a time");
+        return current;
+      }
+      return [...current, id];
+    });
+  };
 
   const handleSave = () => {
     const trimmedName = name.trim();
@@ -146,33 +160,51 @@ export function OutfitBuilder({ garments }: OutfitBuilderProps) {
         ) : savedOutfits.length === 0 ? (
           <p className="text-sm text-muted-foreground">No saved looks yet.</p>
         ) : (
-          <div className="space-y-2">
-            {savedOutfits.map((outfit) => {
-              const garmentIds = parseGarmentIds(outfit.garmentIds);
-              const ids = new Set(garmentIds);
-              const count = garments.filter((garment) => ids.has(garment.id)).length;
-              const categories = getSavedOutfitCategories(garmentIds, catalogGarments);
-              return (
-                <div key={outfit.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{outfit.name}</p>
-                    <p className="text-xs text-muted-foreground">{count || ids.size} catalog piece{(count || ids.size) === 1 ? "" : "s"}</p>
-                    <p className="text-xs text-muted-foreground/80 truncate" title={categories.join(" · ")}>
-                      {categories.length > 0 ? categories.join(" · ") : "Categories unavailable"}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteOutfit.mutate({ id: outfit.id })}
-                    disabled={deleteOutfit.isPending}
-                    aria-label={`Delete ${outfit.name}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+          <div className="space-y-4">
+            {compareOutfitIds.length > 0 && (
+              <div className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div><p className="font-medium">Compare saved looks</p><p className="text-xs text-muted-foreground">Select up to two looks below.</p></div>
+                  <Button variant="ghost" size="sm" onClick={() => setCompareOutfitIds([])}>Clear</Button>
                 </div>
-              );
-            })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {savedOutfits.filter((outfit) => compareOutfitIds.includes(outfit.id)).map((outfit) => {
+                    const preview = parseGarmentIds(outfit.garmentIds).map((id) => catalogGarments.find((garment) => garment.id === id)).filter(Boolean)[0];
+                    return <div key={outfit.id} className="rounded-md border border-border bg-background p-2"><p className="text-sm font-medium truncate mb-2">{outfit.name}</p>{preview ? <img src={preview.imageUrl} alt={outfit.name} className="aspect-square w-full rounded object-cover" /> : <div className="aspect-square rounded bg-muted" />}</div>;
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {savedOutfits.map((outfit) => {
+                const garmentIds = parseGarmentIds(outfit.garmentIds);
+                const ids = new Set(garmentIds);
+                const count = garments.filter((garment) => ids.has(garment.id)).length;
+                const categories = getSavedOutfitCategories(garmentIds, catalogGarments);
+                const savedGarments = garmentIds
+                  .map((id) => catalogGarments.find((garment) => garment.id === id))
+                  .filter((garment): garment is (typeof catalogGarments)[number] => Boolean(garment));
+                return (
+                  <div key={outfit.id} className="rounded-lg border border-border overflow-hidden bg-background">
+                    <div className="grid grid-cols-4 gap-1 bg-muted p-1">
+                      {savedGarments.slice(0, 4).map((garment) => <img key={garment.id} src={garment.imageUrl} alt="" className="aspect-square w-full rounded object-cover" loading="lazy" />)}
+                      {savedGarments.length === 0 && <div className="col-span-4 aspect-[4/1] rounded bg-muted" />}
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <p className="font-medium truncate">{outfit.name}</p>
+                      <p className="text-xs text-muted-foreground">{count || ids.size} catalog piece{(count || ids.size) === 1 ? "" : "s"}</p>
+                      <p className="text-xs text-muted-foreground/80 truncate" title={categories.join(" · ")}>{categories.length > 0 ? categories.join(" · ") : "Categories unavailable"}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {onLoadOutfit && <Button variant="outline" size="sm" onClick={() => onLoadOutfit(savedGarments)} disabled={savedGarments.length === 0}>Load</Button>}
+                        <Button variant={compareOutfitIds.includes(outfit.id) ? "default" : "outline"} size="sm" onClick={() => handleToggleCompare(outfit.id)}>Compare</Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteOutfit.mutate({ id: outfit.id })} disabled={deleteOutfit.isPending} aria-label={`Delete ${outfit.name}`}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                      {savedGarments[0]?.imageUrl && <ShareButtons imageUrl={savedGarments[0].imageUrl} title={`My AI Wardrobe look: ${outfit.name}`} description={`Saved look with ${categories.join(", ") || "catalog garments"}.`} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

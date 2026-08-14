@@ -22,6 +22,20 @@
       "when": 1785760422732,
       "tag": "0002_tranquil_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786732284472,
+      "tag": "0003_late_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786732416943,
+      "tag": "0004_tired_charles_xavier",
+      "breakpoints": true
     }
   ]
 }

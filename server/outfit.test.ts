@@ -20,5 +20,8 @@ describe("outfit persistence", () => {
     expect(source).toContain("getSavedOutfitCategories");
     expect(source).toContain("categories.join(\" · \")");
     expect(source).toContain("Categories unavailable");
+    expect(source).toContain("Compare saved looks");
+    expect(source).toContain("ShareButtons");
+    expect(source).toContain("onLoadOutfit");
   });
 });

@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import TryOnStudio from "./pages/TryOnStudio";
 import History from "./pages/History";
 import Help from "./pages/Help";
+import AdminCatalog from "./pages/AdminCatalog";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/studio"} component={TryOnStudio} />
       <Route path={"/history"} component={History} />
       <Route path={"/help"} component={Help} />
+      <Route path={"/admin/catalog"} component={AdminCatalog} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

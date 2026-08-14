@@ -8,6 +8,7 @@
 
 import { Client, handle_file } from "@gradio/client";
 import { ENV } from "./_core/env";
+import type { PersonFitProfile } from "./bodyAware";
 
 const HF_API_URL = "https://api-inference.huggingface.co/models";
 const MAX_RETRIES = 3;
@@ -38,6 +39,7 @@ interface VTONRequest {
   garmentImageUrl: string;
   clothType: ClothType;
   model?: ModelType;
+  fitProfile?: PersonFitProfile;
 }
 
 interface VTONResponse {
@@ -103,7 +105,7 @@ async function callIdmVton(request: VTONRequest): Promise<string> {
           composite: null,
         },
         garm_img: handle_file(request.garmentImageUrl),
-        garment_des: describeClothType(request.clothType),
+        garment_des: `${describeClothType(request.clothType)}. Preserve the subject's proportions and selected region; this is a visual estimate, not a physical fit guarantee.${request.fitProfile ? ` Source aspect ratio ${request.fitProfile.aspectRatio}.` : ""}`,
         is_checked: true,
         is_checked_crop: false,
         denoise_steps: 30,
@@ -135,6 +137,7 @@ async function callCatVton(request: VTONRequest): Promise<string> {
       person_image: personImageBase64,
       garment_image: garmentImageBase64,
       cloth_type: mapClothType(request.clothType),
+      fit_profile: request.fitProfile ?? null,
     },
   });
 

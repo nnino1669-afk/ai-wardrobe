@@ -1,6 +1,6 @@
-import { eq, desc, and } from "drizzle-orm";
+import { asc, eq, desc, and, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, tryOns, InsertTryOn, TryOn, garments, Garment, garmentCategories, GarmentCategory, wishlists, outfits, Outfit, InsertOutfit } from "../drizzle/schema";
+import { InsertUser, users, tryOns, InsertTryOn, TryOn, garments, Garment, InsertGarment, garmentCategories, GarmentCategory, wishlists, outfits, Outfit, InsertOutfit, garmentReviews, GarmentReview, styleProfiles, StyleProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -201,7 +201,50 @@ export async function getGarmentCategories(): Promise<GarmentCategory[]> {
 /**
  * Get all active garments, optionally filtered by category and cloth type
  */
-export async function getGarments(categoryId?: number, clothType?: string): Promise<Garment[]> {
+export type GarmentSort = "newest" | "priceAsc" | "priceDesc" | "popularity";
+
+export async function getAdminGarments(): Promise<Garment[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(garments).orderBy(desc(garments.updatedAt));
+}
+
+export async function createCatalogGarment(data: InsertGarment): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  await db.insert(garments).values(data);
+  return true;
+}
+
+export async function updateCatalogGarment(id: number, data: Partial<InsertGarment>): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(garments).set(data).where(eq(garments.id, id));
+  return true;
+}
+
+export async function getAdminAnalytics() {
+  const db = await getDb();
+  if (!db) return { activeGarments: 0, categories: 0, tryOns: 0, users: 0 };
+  const [activeGarments, categories, tryOnCount, userCount] = await Promise.all([
+    db.select({ value: count() }).from(garments).where(eq(garments.isActive, 1)),
+    db.select({ value: count() }).from(garmentCategories),
+    db.select({ value: count() }).from(tryOns),
+    db.select({ value: count() }).from(users),
+  ]);
+  return {
+    activeGarments: Number(activeGarments[0]?.value ?? 0),
+    categories: Number(categories[0]?.value ?? 0),
+    tryOns: Number(tryOnCount[0]?.value ?? 0),
+    users: Number(userCount[0]?.value ?? 0),
+  };
+}
+
+export async function getGarments(
+  categoryId?: number,
+  clothType?: string,
+  sort: GarmentSort = "newest",
+): Promise<Garment[]> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get garments: database not available");
@@ -219,11 +262,19 @@ export async function getGarments(categoryId?: number, clothType?: string): Prom
       conditions.push(eq(garments.clothType, clothType as Garment["clothType"]));
     }
 
+    const ordering = sort === "priceAsc"
+      ? [asc(garments.price), desc(garments.createdAt)]
+      : sort === "priceDesc"
+        ? [desc(garments.price), desc(garments.createdAt)]
+        : sort === "popularity"
+          ? [desc(garments.rating), desc(garments.reviewCount), desc(garments.createdAt)]
+          : [desc(garments.createdAt)];
+
     return await db
       .select()
       .from(garments)
       .where(and(...conditions))
-      .orderBy(desc(garments.createdAt));
+      .orderBy(...ordering);
   } catch (error) {
     console.error("[Database] Failed to get garments:", error);
     throw error;
@@ -252,6 +303,64 @@ export async function getGarmentById(id: number): Promise<Garment | null> {
 /**
  * Add garment to user's wishlist
  */
+export async function getGarmentReviews(garmentId: number): Promise<Pick<GarmentReview, "id" | "rating" | "review" | "createdAt">[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select({ id: garmentReviews.id, rating: garmentReviews.rating, review: garmentReviews.review, createdAt: garmentReviews.createdAt })
+    .from(garmentReviews)
+    .where(eq(garmentReviews.garmentId, garmentId))
+    .orderBy(desc(garmentReviews.createdAt));
+}
+
+export async function saveGarmentReview(
+  userId: number,
+  garmentId: number,
+  rating: number,
+  review?: string,
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const garment = await getGarmentById(garmentId);
+  if (!garment) return false;
+
+  await db.delete(garmentReviews).where(and(eq(garmentReviews.userId, userId), eq(garmentReviews.garmentId, garmentId)));
+  await db.insert(garmentReviews).values({ userId, garmentId, rating, review: review || null });
+
+  const reviews = await db.select({ rating: garmentReviews.rating }).from(garmentReviews).where(eq(garmentReviews.garmentId, garmentId));
+  const average = reviews.length > 0 ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length : 0;
+  await db.update(garments).set({ rating: Math.round(average * 100), reviewCount: reviews.length }).where(eq(garments.id, garmentId));
+  return true;
+}
+
+type StyleProfileValues = {
+  preferredColor: string;
+  preferredFit: StyleProfile["preferredFit"];
+  preferredOccasion: StyleProfile["preferredOccasion"];
+};
+
+export async function getStyleProfile(userId: number): Promise<StyleProfileValues> {
+  const db = await getDb();
+  if (!db) return { preferredColor: "", preferredFit: "regular", preferredOccasion: "everyday" };
+  const rows = await db.select({ preferredColor: styleProfiles.preferredColor, preferredFit: styleProfiles.preferredFit, preferredOccasion: styleProfiles.preferredOccasion }).from(styleProfiles).where(eq(styleProfiles.userId, userId)).limit(1);
+  const row = rows[0];
+  return {
+    preferredColor: row?.preferredColor ?? "",
+    preferredFit: row?.preferredFit ?? "regular",
+    preferredOccasion: row?.preferredOccasion ?? "everyday",
+  };
+}
+
+export async function saveStyleProfile(
+  userId: number,
+  profile: StyleProfileValues,
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  await db.insert(styleProfiles).values({ userId, ...profile }).onDuplicateKeyUpdate({ set: profile });
+  return true;
+}
+
 export async function addToWishlist(userId: number, garmentId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) {

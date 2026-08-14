@@ -13,6 +13,7 @@ import { BeforeAfterComparison } from "@/components/BeforeAfterComparison";
 import { ShareButtons } from "@/components/ShareButtons";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
 import { OutfitBuilder } from "@/components/OutfitBuilder";
+import { StyleProfileCard } from "@/components/StyleProfileCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type ClothType = "upper" | "lower" | "overall" | "inner" | "outer";
@@ -73,6 +74,22 @@ export default function TryOnStudio() {
     setClothType(garment.clothType);
     setResultImage("");
     setProcessingError("");
+  };
+
+  const handleLoadOutfit = (garments: Array<{ id: number; name: string; imageUrl: string; clothType: string }>) => {
+    const normalized = garments.map((garment) => ({
+      ...garment,
+      clothType: garment.clothType as ClothType,
+    }));
+    setSelectedOutfit(normalized);
+    const primary = normalized.find((garment) => garment.clothType !== "overall") ?? normalized[0];
+    if (primary) {
+      setSelectedGarment(primary);
+      setClothType(primary.clothType);
+    }
+    setResultImage("");
+    setProcessingError("");
+    toast.success("Saved look loaded");
   };
 
   const handleTryOn = async () => {
@@ -266,7 +283,8 @@ export default function TryOnStudio() {
               </div>
             </Card>
 
-            <OutfitBuilder garments={selectedOutfit} />
+            <OutfitBuilder garments={selectedOutfit} onLoadOutfit={handleLoadOutfit} />
+            <StyleProfileCard />
 
             <Button
               onClick={handleTryOn}

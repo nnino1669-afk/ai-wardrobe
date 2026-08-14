@@ -1,12 +1,14 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { adminProcedure, publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById, getGarmentCategories, getGarments, getGarmentById, addToWishlist, removeFromWishlist, getUserWishlist, createOutfit, getUserOutfits, deleteOutfit } from "./db";
+import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById, getGarmentCategories, getGarments, getGarmentById, getAdminGarments, createCatalogGarment, updateCatalogGarment, getAdminAnalytics, addToWishlist, removeFromWishlist, getUserWishlist, createOutfit, getUserOutfits, deleteOutfit, getGarmentReviews, saveGarmentReview, getStyleProfile, saveStyleProfile } from "./db";
 import { generateVirtualTryOn } from "./vton";
 import { resolveInferenceUrl, storageGetSignedUrl, storagePut } from "./storage";
 import { cropSelectedPerson } from "./personCrop";
+import { analyzePersonImage } from "./bodyAware";
+import { optimizeUploadedImage } from "./imageOptimization";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -86,12 +88,13 @@ export const appRouter = router({
 
           const [, format, base64] = matches;
           const buffer = Buffer.from(base64, "base64");
+          const optimized = await optimizeUploadedImage(buffer, format);
 
-          // Upload to S3
+          // Upload the normalized image to S3
           const uploadResult = await storagePut(
-            `input-images/${ctx.user.id}/${input.imageType}/${Date.now()}.${format}`,
-            buffer,
-            `image/${format}`
+            `input-images/${ctx.user.id}/${input.imageType}/${Date.now()}.${optimized.format}`,
+            optimized.buffer,
+            optimized.contentType,
           );
           const inferenceUrl = await storageGetSignedUrl(uploadResult.key);
 
@@ -128,6 +131,10 @@ export const appRouter = router({
             ? await cropSelectedPerson(personImageUrl, input.personSelector, ctx.user.id)
             : null;
           const effectivePersonImageUrl = selectedPersonImage?.inferenceUrl || personImageUrl;
+          const fitProfile = await analyzePersonImage(
+            effectivePersonImageUrl,
+            selectedPersonImage ? { x: 0, y: 0, width: 1, height: 1 } : undefined,
+          );
 
           // Call Hugging Face API to generate virtual try-on
           const vtonResult = await generateVirtualTryOn({
@@ -135,6 +142,7 @@ export const appRouter = router({
             garmentImageUrl,
             clothType: input.clothType,
             model: input.model,
+            fitProfile,
           });
 
           if (!vtonResult.success || !vtonResult.imageUrl) {
@@ -200,10 +208,11 @@ export const appRouter = router({
         z.object({
           categoryId: z.number().optional(),
           clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]).optional(),
+          sort: z.enum(["newest", "priceAsc", "priceDesc", "popularity"]).default("newest"),
         })
       )
       .query(async ({ input }) => {
-        return await getGarments(input.categoryId, input.clothType);
+        return await getGarments(input.categoryId, input.clothType, input.sort);
       }),
 
     garmentDetail: publicProcedure
@@ -242,6 +251,37 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         return { success: await deleteOutfit(input.id, ctx.user.id) };
       }),
+  }),
+
+  admin: router({
+    analytics: adminProcedure.query(async () => getAdminAnalytics()),
+    garments: adminProcedure.query(async () => getAdminGarments()),
+    createGarment: adminProcedure
+      .input(z.object({ categoryId: z.number().int().positive(), name: z.string().trim().min(1).max(255), description: z.string().trim().max(2000).optional(), imageUrl: z.string().min(1), clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]), color: z.string().trim().max(50).optional(), sizes: z.string().trim().max(100).optional(), price: z.number().int().nonnegative().optional(), brand: z.string().trim().max(100).optional() }))
+      .mutation(async ({ input }) => ({ success: await createCatalogGarment({ ...input, isActive: 1 }) })),
+    updateGarment: adminProcedure
+      .input(z.object({ id: z.number().int().positive(), patch: z.object({ name: z.string().trim().min(1).max(255).optional(), description: z.string().trim().max(2000).optional(), imageUrl: z.string().min(1).optional(), color: z.string().trim().max(50).optional(), sizes: z.string().trim().max(100).optional(), price: z.number().int().nonnegative().optional(), brand: z.string().trim().max(100).optional(), isActive: z.number().int().min(0).max(1).optional() }) }))
+      .mutation(async ({ input }) => ({ success: await updateCatalogGarment(input.id, input.patch) })),
+    bulkImport: adminProcedure
+      .input(z.object({ garments: z.array(z.object({ categoryId: z.number().int().positive(), name: z.string().trim().min(1).max(255), description: z.string().trim().max(2000).optional(), imageUrl: z.string().min(1), clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]), color: z.string().trim().max(50).optional(), sizes: z.string().trim().max(100).optional(), price: z.number().int().nonnegative().optional(), brand: z.string().trim().max(100).optional() })).max(500) }))
+      .mutation(async ({ input }) => { for (const garment of input.garments) await createCatalogGarment({ ...garment, isActive: 1 }); return { success: true, imported: input.garments.length }; }),
+  }),
+
+  styleProfile: router({
+    get: protectedProcedure.query(async ({ ctx }) => getStyleProfile(ctx.user.id)),
+    save: protectedProcedure
+      .input(z.object({ preferredColor: z.string().trim().max(50), preferredFit: z.enum(["relaxed", "regular", "tailored"]), preferredOccasion: z.enum(["everyday", "work", "evening", "active"]) }))
+      .mutation(async ({ ctx, input }) => ({ success: await saveStyleProfile(ctx.user.id, input) })),
+  }),
+
+  reviews: router({
+    list: publicProcedure
+      .input(z.object({ garmentId: z.number().int().positive() }))
+      .query(async ({ input }) => getGarmentReviews(input.garmentId)),
+
+    save: protectedProcedure
+      .input(z.object({ garmentId: z.number().int().positive(), rating: z.number().int().min(1).max(5), review: z.string().trim().max(1000).optional() }))
+      .mutation(async ({ ctx, input }) => ({ success: await saveGarmentReview(ctx.user.id, input.garmentId, input.rating, input.review) })),
   }),
 
   wishlist: router({
