@@ -14,6 +14,7 @@ describe("TryOnStudio hook stability", () => {
     expect(source.slice(handlerStart)).not.toContain(".useMutation(");
     expect(source).toContain("const uploadImageMutation = trpc.tryOn.uploadImage.useMutation();");
     expect(source).toContain("const processMutation = trpc.tryOn.process.useMutation();");
+    expect(source).toContain("The AI try-on model could not process this request.");
   });
 });
 

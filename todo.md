@@ -142,3 +142,9 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Add comprehensive garment catalog entries spanning underwear, tops, trousers, dresses, outerwear, and full suits
 - [x] Verify category distribution and image accessibility
 - [x] Run test suite and check app functionality
+
+## Underwear Category Error Fix
+- [x] Reproduce and diagnose the error when selecting underwear
+- [x] Repair the underwear catalog query, image paths, or rendering path
+- [x] Add regression coverage for underwear category selection
+- [x] Verify the underwear flow visually and save a corrected checkpoint

@@ -138,7 +138,10 @@ export default function TryOnStudio() {
       }
       toast.success("Virtual try-on generated successfully!");
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to process try-on";
+      const rawMessage = error instanceof Error ? error.message : "Failed to process try-on";
+      const errorMsg = rawMessage === "An error occurred"
+        ? "The AI try-on model could not process this request. Try a clear full-body photo, confirm the garment image is visible, or switch to CatVTON in Garment settings."
+        : rawMessage;
       setProcessingError(errorMsg);
       toast.error(errorMsg);
     } finally {

@@ -28,6 +28,23 @@ describe("CatalogBrowser stability", () => {
     expect(source).toContain("Try this garment on");
   });
 
+  it("routes an inner garment through catalog selection into the studio request", () => {
+    const studio = readFileSync(resolve(process.cwd(), "client/src/pages/TryOnStudio.tsx"), "utf8");
+    expect(source).toContain("onSelect={onGarmentSelect}");
+    expect(source).toContain("clothType: selectedClothType as");
+    expect(studio).toContain('type ClothType = "upper" | "lower" | "overall" | "inner" | "outer";');
+    expect(studio).toContain("setClothType(garment.clothType);");
+    expect(studio).toContain("clothType,\n        model: selectedModel,");
+  });
+
+  it("keeps underwear entries on the inner clothing type with project-persistent images", () => {
+    const seed = readFileSync(resolve(process.cwd(), "scripts/seedCatalog.mjs"), "utf8");
+    expect(seed).toContain('category: "Underwear"');
+    expect(seed).toContain('clothType: "inner"');
+    expect(seed).toContain("catalog-black-bralette_9c1b2130.png");
+    expect(seed).toContain("catalog-modal-base_3f13e853.png");
+  });
+
   it("renders garment sizes and explicit catalog query error states", () => {
     expect(source).toContain("garment.sizes");
     expect(source).toContain("categoriesError");
