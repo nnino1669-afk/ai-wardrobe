@@ -148,3 +148,10 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Repair the underwear catalog query, image paths, or rendering path
 - [x] Add regression coverage for underwear category selection
 - [x] Verify the underwear flow visually and save a corrected checkpoint
+
+## Outerwear Try-On Fix
+- [x] Inspect why outerwear does not replace clothing on upper-body photos
+- [x] Implement a supported outerwear-to-upper-body inference path with clear validation
+- [x] Add regression coverage for outerwear selection and adapter mapping
+- [x] Verify the outerwear flow visually and save a corrected checkpoint
+- [x] Show a dedicated Hugging Face ZeroGPU quota message with retry guidance

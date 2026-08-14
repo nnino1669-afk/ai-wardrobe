@@ -15,6 +15,9 @@ describe("TryOnStudio hook stability", () => {
     expect(source).toContain("const uploadImageMutation = trpc.tryOn.uploadImage.useMutation();");
     expect(source).toContain("const processMutation = trpc.tryOn.process.useMutation();");
     expect(source).toContain("The AI try-on model could not process this request.");
+    expect(source).toContain("Hugging Face's free GPU quota is temporarily exhausted.");
+    expect(source).toContain("Outerwear is processed as an upper-body layer.");
+    expect(source).toContain("Outerwear requires a clear photo with visible shoulders and torso.");
   });
 });
 

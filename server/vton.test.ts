@@ -55,7 +55,9 @@ describe("Hugging Face Virtual Try-On Integration", () => {
     const categories = ["upper", "lower", "overall", "inner", "outer"] as const;
     const mapped = categories.map((category) => mapClothType(category));
     const descriptions = categories.map((category) => describeClothType(category));
-    expect(mapped).toEqual(["upper_body", "lower_body", "dress", "inner", "outer"]);
+    expect(mapped).toEqual(["upper_body", "lower_body", "dress", "inner", "upper_body"]);
     expect(descriptions.every((description) => description.length > 20)).toBe(true);
+    expect(describeClothType("outer")).toContain("upper-body layer");
+    expect(describeClothType("outer")).toContain("shoulders");
   });
 });

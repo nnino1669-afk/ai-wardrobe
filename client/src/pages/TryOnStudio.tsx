@@ -102,6 +102,11 @@ export default function TryOnStudio() {
       return;
     }
 
+    if (clothType === "outer" && bodyFitPlan && bodyFitPlan.confidence < 0.4) {
+      toast.error("Outerwear requires a clear photo with visible shoulders and torso. Please upload a full-body or upper-body photo.");
+      return;
+    }
+
     if (isGroupPhoto && !personSelector) {
       toast.error("Select the person in the group photo first");
       return;
@@ -144,9 +149,12 @@ export default function TryOnStudio() {
       toast.success("Virtual try-on generated successfully!");
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : "Failed to process try-on";
-      const errorMsg = rawMessage === "An error occurred"
-        ? "The AI try-on model could not process this request. Try a clear full-body photo, confirm the garment image is visible, or switch to CatVTON in Garment settings."
-        : rawMessage;
+      const normalizedError = rawMessage.toLowerCase();
+      const errorMsg = normalizedError.includes("zerogpu") || normalizedError.includes("quota")
+        ? "Hugging Face's free GPU quota is temporarily exhausted. Wait until the reset time shown in the error, then try again; switching models will not restore the IDM-VTON Space quota."
+        : rawMessage === "An error occurred"
+          ? "The AI try-on model could not process this request. Try a clear full-body photo, confirm the garment image is visible, or switch to CatVTON in Garment settings."
+          : rawMessage;
       setProcessingError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -257,6 +265,11 @@ export default function TryOnStudio() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     The result is a visual estimate. It preserves the uploaded person as closely as the model allows, but it cannot guarantee physical size or fit.
                   </p>
+                  {clothType === "outer" && (
+                    <p className="mt-2 text-xs text-amber-700">
+                      Outerwear is processed as an upper-body layer. Use a clear photo with both shoulders and the torso visible so the jacket or coat can be placed over the person.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" htmlFor="garment-type">

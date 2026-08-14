@@ -272,7 +272,7 @@ export function describeClothType(clothType: ClothType): string {
     lower: "lower-body garment such as trousers, jeans, skirt, or shorts",
     overall: "full outfit or dress covering the main body",
     inner: "inner layer or underwear garment",
-    outer: "outerwear layer such as a coat or blazer",
+    outer: "outerwear upper-body layer such as a jacket, coat, or blazer; place it over the visible torso and shoulders",
   };
   return descriptions[clothType];
 }
@@ -283,7 +283,7 @@ export function mapClothType(clothType: ClothType): string {
     lower: "lower_body",
     overall: "dress",
     inner: "inner",
-    outer: "outer",
+    outer: "upper_body",
   };
   return mapping[clothType];
 }
