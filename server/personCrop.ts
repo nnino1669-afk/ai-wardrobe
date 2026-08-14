@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { storagePut } from "./storage";
+import { storageGetSignedUrl, storagePut } from "./storage";
 
 export type NormalizedSelection = {
   x: number;
@@ -33,7 +33,7 @@ export async function cropSelectedPerson(
   imageUrl: string,
   selector: string,
   userId: number,
-): Promise<{ imageUrl: string; selection: NormalizedSelection }> {
+): Promise<{ imageUrl: string; inferenceUrl: string; selection: NormalizedSelection }> {
   const selection = parseNormalizedSelection(selector);
   const response = await fetch(imageUrl);
   if (!response.ok) {
@@ -63,8 +63,11 @@ export async function cropSelectedPerson(
     "image/png",
   );
 
+  const inferenceUrl = await storageGetSignedUrl(upload.key);
+
   return {
     imageUrl: upload.url,
+    inferenceUrl,
     selection,
   };
 }

@@ -5,7 +5,7 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById, getGarmentCategories, getGarments, getGarmentById, addToWishlist, removeFromWishlist, getUserWishlist, createOutfit, getUserOutfits, deleteOutfit } from "./db";
 import { generateVirtualTryOn } from "./vton";
-import { storagePut } from "./storage";
+import { resolveInferenceUrl, storageGetSignedUrl, storagePut } from "./storage";
 import { cropSelectedPerson } from "./personCrop";
 
 export const appRouter = router({
@@ -93,10 +93,12 @@ export const appRouter = router({
             buffer,
             `image/${format}`
           );
+          const inferenceUrl = await storageGetSignedUrl(uploadResult.key);
 
           return {
             success: true,
             imageUrl: uploadResult.url,
+            inferenceUrl,
           };
         } catch (error) {
           console.error("[TryOn] Error uploading image:", error);
@@ -110,8 +112,8 @@ export const appRouter = router({
     process: protectedProcedure
       .input(
         z.object({
-          personImageUrl: z.string().url(),
-          garmentImageUrl: z.string().url(),
+          personImageUrl: z.string().min(1),
+          garmentImageUrl: z.string().min(1),
           clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]),
           model: z.enum(["idmvton", "catvton"]).default("idmvton"),
           personSelector: z.string().optional(),
@@ -120,15 +122,17 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         try {
+          const personImageUrl = await resolveInferenceUrl(input.personImageUrl);
+          const garmentImageUrl = await resolveInferenceUrl(input.garmentImageUrl);
           const selectedPersonImage = input.personSelector
-            ? await cropSelectedPerson(input.personImageUrl, input.personSelector, ctx.user.id)
+            ? await cropSelectedPerson(personImageUrl, input.personSelector, ctx.user.id)
             : null;
-          const effectivePersonImageUrl = selectedPersonImage?.imageUrl || input.personImageUrl;
+          const effectivePersonImageUrl = selectedPersonImage?.inferenceUrl || personImageUrl;
 
           // Call Hugging Face API to generate virtual try-on
           const vtonResult = await generateVirtualTryOn({
             personImageUrl: effectivePersonImageUrl,
-            garmentImageUrl: input.garmentImageUrl,
+            garmentImageUrl,
             clothType: input.clothType,
             model: input.model,
           });
@@ -162,8 +166,8 @@ export const appRouter = router({
           // Save to database
           const tryOn = await createTryOn({
             userId: ctx.user.id,
-            personImageUrl: input.personImageUrl,
-            garmentImageUrl: input.garmentImageUrl,
+            personImageUrl,
+            garmentImageUrl,
             resultImageUrl: uploadResult.url,
             clothType: input.clothType,
             personSelector: input.personSelector,

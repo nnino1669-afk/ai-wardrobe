@@ -100,9 +100,10 @@ export default function TryOnStudio() {
         throw new Error("Failed to upload person image");
       }
 
-      const garmentImageUrl = new URL(selectedGarment.imageUrl, window.location.origin).toString();
+      const personImageUrl = personUploadResult.imageUrl;
+      const garmentImageUrl = selectedGarment.imageUrl;
       const processResult = await processMutation.mutateAsync({
-        personImageUrl: personUploadResult.imageUrl,
+        personImageUrl,
         garmentImageUrl,
         clothType,
         model: selectedModel,

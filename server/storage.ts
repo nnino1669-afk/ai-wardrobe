@@ -95,3 +95,39 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
   const { url } = (await resp.json()) as { url: string };
   return url;
 }
+
+/**
+ * Resolve a browser-facing storage path into an absolute URL that external
+ * inference providers can fetch. Absolute HTTP(S) URLs are preserved.
+ */
+export async function resolveInferenceUrl(value: string): Promise<string> {
+  try {
+    const absolute = new URL(value);
+    if (absolute.protocol === "http:" || absolute.protocol === "https:") {
+      return absolute.toString();
+    }
+  } catch {
+    // Relative storage paths are handled below.
+  }
+
+  const storagePrefix = "/manus-storage/";
+  if (!value.startsWith(storagePrefix)) {
+    throw new Error("Inference image URL must be an absolute HTTP(S) URL or a Manus storage path");
+  }
+
+  const key = decodeURIComponent(value.slice(storagePrefix.length).split("?", 1)[0]);
+  if (!key) {
+    throw new Error("Inference image URL contains an empty Manus storage path");
+  }
+
+  const signedUrl = await storageGetSignedUrl(key);
+  try {
+    const absoluteSignedUrl = new URL(signedUrl);
+    if (absoluteSignedUrl.protocol !== "http:" && absoluteSignedUrl.protocol !== "https:") {
+      throw new Error();
+    }
+    return absoluteSignedUrl.toString();
+  } catch {
+    throw new Error("Storage provider returned an invalid inference URL");
+  }
+}

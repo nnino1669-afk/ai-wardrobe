@@ -127,3 +127,12 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Defer History redirect until auth loading has completed
 - [x] Gate history queries on resolved authentication state
 - [x] Add regression coverage for the loading-state auth path
+
+
+## Invalid Person Image URL Fix
+- [x] Trace where the uploaded person image URL becomes invalid before inference
+- [x] Normalize relative storage URLs into absolute URLs on the server
+- [x] Validate person and garment URLs before calling the VTON adapter
+- [x] Add regression tests for relative, absolute, and invalid image URLs
+- [x] Re-run the full test suite and visual QA
+- [ ] Save a corrected checkpoint

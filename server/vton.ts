@@ -210,14 +210,31 @@ function getBase64Image(result: unknown): string | null {
   return null;
 }
 
+export function requireInferenceUrl(value: string, fieldName: string): string {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error();
+    }
+    return url.toString();
+  } catch {
+    throw new Error(`${fieldName} must be a valid absolute HTTP(S) URL`);
+  }
+}
+
 export async function generateVirtualTryOn(
   request: VTONRequest,
 ): Promise<VTONResponse> {
   try {
-    const model = request.model || "idmvton";
+    const normalizedRequest: VTONRequest = {
+      ...request,
+      personImageUrl: requireInferenceUrl(request.personImageUrl, "Person image URL"),
+      garmentImageUrl: requireInferenceUrl(request.garmentImageUrl, "Garment image URL"),
+    };
+    const model = normalizedRequest.model || "idmvton";
     const imageUrl = model === MODELS.idmvton
-      ? await callIdmVton(request)
-      : await callCatVton(request);
+      ? await callIdmVton(normalizedRequest)
+      : await callCatVton(normalizedRequest);
 
     return {
       imageUrl,
