@@ -136,3 +136,9 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Add regression tests for relative, absolute, and invalid image URLs
 - [x] Re-run the full test suite and visual QA
 - [ ] Save a corrected checkpoint
+
+## Catalog Expansion
+- [x] Audit existing seed script and catalog categories
+- [x] Add comprehensive garment catalog entries spanning underwear, tops, trousers, dresses, outerwear, and full suits
+- [x] Verify category distribution and image accessibility
+- [x] Run test suite and check app functionality
