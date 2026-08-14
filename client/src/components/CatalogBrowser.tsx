@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, Heart } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 interface GarmentCardProps {
   garment: any;
@@ -54,6 +55,12 @@ function GarmentCard({ garment, onSelect, isInWishlist, onWishlistToggle }: Garm
               <span className="font-medium">{garment.color}</span>
             </div>
           )}
+          {garment.sizes && (
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-muted-foreground shrink-0">Sizes:</span>
+              <span className="font-medium text-right text-xs leading-4 break-words">{garment.sizes}</span>
+            </div>
+          )}
           {garment.price && (
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Price:</span>
@@ -81,33 +88,59 @@ interface CatalogBrowserProps {
 }
 
 export function CatalogBrowser({ onGarmentSelect, clothType }: CatalogBrowserProps) {
+  const { isAuthenticated } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
   const [selectedClothType, setSelectedClothType] = useState<string | undefined>(clothType);
+  const utils = trpc.useUtils();
+
+  useEffect(() => {
+    setSelectedClothType(clothType);
+  }, [clothType]);
+
+  const catalogInput = useMemo(
+    () => ({
+      categoryId: selectedCategory,
+      clothType: selectedClothType as "upper" | "lower" | "overall" | "inner" | "outer" | undefined,
+    }),
+    [selectedCategory, selectedClothType],
+  );
 
   // Fetch categories
-  const { data: categories, isLoading: categoriesLoading } = trpc.catalog.categories.useQuery();
+  const {
+    data: categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = trpc.catalog.categories.useQuery();
 
-  // Fetch garments
-  const { data: garments, isLoading: garmentsLoading } = trpc.catalog.garments.useQuery({
-    categoryId: selectedCategory,
-    clothType: selectedClothType as any,
+  // Fetch garments with a stable input object
+  const {
+    data: garments,
+    isLoading: garmentsLoading,
+    error: garmentsError,
+  } = trpc.catalog.garments.useQuery(catalogInput);
+
+  // Wishlist is protected, so do not request it before authentication is known.
+  const { data: wishlist = [] } = trpc.wishlist.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
   });
-
-  // Fetch wishlist
-  const { data: wishlist = [] } = trpc.wishlist.list.useQuery();
-  const wishlistIds = new Set(wishlist?.map((g: any) => g.id) || []);
+  const wishlistIds = new Set(wishlist.map((g: any) => g.id));
 
   // Wishlist mutations
   const addWishlistMutation = trpc.wishlist.add.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.wishlist.list.invalidate();
       toast.success("Added to wishlist");
     },
+    onError: () => toast.error("Could not add garment to wishlist"),
   });
 
   const removeWishlistMutation = trpc.wishlist.remove.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.wishlist.list.invalidate();
       toast.success("Removed from wishlist");
     },
+    onError: () => toast.error("Could not remove garment from wishlist"),
   });
 
   const handleWishlistToggle = (garmentId: number) => {
@@ -155,7 +188,13 @@ export function CatalogBrowser({ onGarmentSelect, clothType }: CatalogBrowserPro
         </div>
 
         {/* Category Filter */}
-        {categories && categories.length > 0 && (
+        {categoriesLoading ? (
+          <p className="text-sm text-muted-foreground">Loading categories...</p>
+        ) : categoriesError ? (
+          <Card className="p-4 border-destructive/30 bg-destructive/5">
+            <p className="text-sm text-destructive">Categories could not be loaded. You can still browse all garments.</p>
+          </Card>
+        ) : categories && categories.length > 0 ? (
           <div>
             <h3 className="text-sm font-semibold mb-2">Category</h3>
             <div className="flex flex-wrap gap-2">
@@ -178,11 +217,16 @@ export function CatalogBrowser({ onGarmentSelect, clothType }: CatalogBrowserPro
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Garments Grid */}
-      {garmentsLoading ? (
+      {garmentsError ? (
+        <Card className="p-8 text-center border-destructive/30 bg-destructive/5">
+          <p className="font-medium text-destructive">The garment catalog could not be loaded.</p>
+          <p className="text-sm text-muted-foreground mt-1">Please try again in a moment.</p>
+        </Card>
+      ) : garmentsLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>

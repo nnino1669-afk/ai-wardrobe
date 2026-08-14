@@ -3,9 +3,10 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById, getGarmentCategories, getGarments, getGarmentById, addToWishlist, removeFromWishlist, getUserWishlist } from "./db";
+import { createTryOn, getUserTryOns, deleteTryOn, getTryOnById, getGarmentCategories, getGarments, getGarmentById, addToWishlist, removeFromWishlist, getUserWishlist, createOutfit, getUserOutfits, deleteOutfit } from "./db";
 import { generateVirtualTryOn } from "./vton";
 import { storagePut } from "./storage";
+import { cropSelectedPerson } from "./personCrop";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -112,17 +113,24 @@ export const appRouter = router({
           personImageUrl: z.string().url(),
           garmentImageUrl: z.string().url(),
           clothType: z.enum(["upper", "lower", "overall", "inner", "outer"]),
+          model: z.enum(["idmvton", "catvton"]).default("idmvton"),
           personSelector: z.string().optional(),
           name: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         try {
+          const selectedPersonImage = input.personSelector
+            ? await cropSelectedPerson(input.personImageUrl, input.personSelector, ctx.user.id)
+            : null;
+          const effectivePersonImageUrl = selectedPersonImage?.imageUrl || input.personImageUrl;
+
           // Call Hugging Face API to generate virtual try-on
           const vtonResult = await generateVirtualTryOn({
-            personImageUrl: input.personImageUrl,
+            personImageUrl: effectivePersonImageUrl,
             garmentImageUrl: input.garmentImageUrl,
             clothType: input.clothType,
+            model: input.model,
           });
 
           if (!vtonResult.success || !vtonResult.imageUrl) {
@@ -166,6 +174,7 @@ export const appRouter = router({
             success: true,
             tryOn,
             resultImageUrl: uploadResult.url,
+            effectivePersonImageUrl,
           };
         } catch (error) {
           console.error("[TryOn] Error processing virtual try-on:", error);
@@ -197,6 +206,37 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return await getGarmentById(input.id);
+      }),
+  }),
+
+  outfits: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return await getUserOutfits(ctx.user.id);
+    }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().trim().min(1).max(255),
+          description: z.string().trim().max(1000).optional(),
+          garmentIds: z.array(z.number().int().positive()).min(1).max(20),
+          previewImageUrl: z.string().url().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        return await createOutfit({
+          userId: ctx.user.id,
+          name: input.name,
+          description: input.description,
+          garmentIds: JSON.stringify(input.garmentIds),
+          previewImageUrl: input.previewImageUrl,
+        });
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        return { success: await deleteOutfit(input.id, ctx.user.id) };
       }),
   }),
 

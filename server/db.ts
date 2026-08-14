@@ -1,6 +1,6 @@
 import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, tryOns, InsertTryOn, TryOn, garments, Garment, garmentCategories, GarmentCategory, wishlists } from "../drizzle/schema";
+import { InsertUser, users, tryOns, InsertTryOn, TryOn, garments, Garment, garmentCategories, GarmentCategory, wishlists, outfits, Outfit, InsertOutfit } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -209,18 +209,21 @@ export async function getGarments(categoryId?: number, clothType?: string): Prom
   }
 
   try {
-    let query: any = db.select().from(garments).where(eq(garments.isActive, 1));
-    
-    if (categoryId) {
-      query = query.where(eq(garments.categoryId, categoryId));
+    const conditions = [eq(garments.isActive, 1)];
+
+    if (categoryId !== undefined) {
+      conditions.push(eq(garments.categoryId, categoryId));
     }
-    
+
     if (clothType) {
-      query = query.where(eq(garments.clothType, clothType as any));
+      conditions.push(eq(garments.clothType, clothType as Garment["clothType"]));
     }
-    
-    const result = await query;
-    return result;
+
+    return await db
+      .select()
+      .from(garments)
+      .where(and(...conditions))
+      .orderBy(desc(garments.createdAt));
   } catch (error) {
     console.error("[Database] Failed to get garments:", error);
     throw error;
@@ -305,4 +308,46 @@ export async function getUserWishlist(userId: number): Promise<Garment[]> {
     console.error("[Database] Failed to get wishlist:", error);
     throw error;
   }
+}
+
+
+export async function createOutfit(outfit: InsertOutfit): Promise<Outfit | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  await db.insert(outfits).values(outfit);
+  const result = await db
+    .select()
+    .from(outfits)
+    .where(and(eq(outfits.userId, outfit.userId), eq(outfits.name, outfit.name)))
+    .orderBy(desc(outfits.createdAt))
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+export async function getUserOutfits(userId: number): Promise<Outfit[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(outfits)
+    .where(eq(outfits.userId, userId))
+    .orderBy(desc(outfits.createdAt));
+}
+
+export async function deleteOutfit(outfitId: number, userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const owned = await db
+    .select({ id: outfits.id })
+    .from(outfits)
+    .where(and(eq(outfits.id, outfitId), eq(outfits.userId, userId)))
+    .limit(1);
+  if (owned.length === 0) return false;
+
+  await db.delete(outfits).where(eq(outfits.id, outfitId));
+  return true;
 }
