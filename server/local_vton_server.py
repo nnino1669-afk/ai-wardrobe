@@ -29,16 +29,17 @@ def health_check():
 def run_local_tryon(req: TryOnRequest):
     try:
         print(f"[Local VTON] Processing try-on for category: {req.category}")
-        # In actual local deployment, load IDM-VTON pipeline with torch.float16 and enable_model_cpu_offload()
-        # For bridge skeleton & verification:
-        return {
-            "status": "success",
-            "message": "Local VTON inference completed successfully via RTX 4060 bridge.",
-            "device": DEVICE,
-            "low_vram": LOW_VRAM,
-            "category": req.category,
-            "result_url": req.person_image_url # Fallback / preview reference for bridge testing
-        }
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                "Local Python VTON server is currently running in bridge skeleton mode. "
+                "To run full IDM-VTON diffusion pipeline locally on your RTX 4060, clone https://github.com/yisol/IDM-VTON, "
+                "download the model weights and checkpoints (DensePose, human parsing), and run the official inference.py or gradio_demo/app.py. "
+                "Alternatively, you can configure a cloud inference token in the app settings."
+            )
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
