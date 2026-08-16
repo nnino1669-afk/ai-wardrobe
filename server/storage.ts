@@ -41,9 +41,10 @@ export async function storagePut(
     const fs = await import("fs/promises");
     const path = await import("path");
     const key = appendHashSuffix(normalizeKey(relKey));
-    const uploadDir = path.resolve(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadDir, { recursive: true });
-    const filePath = path.join(uploadDir, key);
+    const fullPath = path.resolve(process.cwd(), "public", "uploads", key);
+    const targetDir = path.dirname(fullPath);
+    await fs.mkdir(targetDir, { recursive: true });
+    const filePath = fullPath;
     const buffer = typeof data === "string" ? Buffer.from(data, "utf-8") : Buffer.from(data);
     await fs.writeFile(filePath, buffer);
     return {

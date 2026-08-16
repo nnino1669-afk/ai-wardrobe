@@ -11,6 +11,7 @@ interface LocalData {
   outfits: any[];
   reviews: any[];
   styleProfiles: any[];
+  categories?: any[];
 }
 
 function loadData(): LocalData {
@@ -34,7 +35,15 @@ function loadData(): LocalData {
     wishlists: [],
     outfits: [],
     reviews: [],
-    styleProfiles: []
+    styleProfiles: [],
+    categories: [
+      { id: 1, name: "Underwear & Basics", slug: "underwear", displayOrder: 1 },
+      { id: 2, name: "Tops & Shirts", slug: "tops", displayOrder: 2 },
+      { id: 3, name: "Bottoms & Trousers", slug: "bottoms", displayOrder: 3 },
+      { id: 4, name: "Dresses & Gowns", slug: "dresses", displayOrder: 4 },
+      { id: 5, name: "Outerwear & Jackets", slug: "outerwear", displayOrder: 5 },
+      { id: 6, name: "Suits & Formalwear", slug: "formalwear", displayOrder: 6 }
+    ]
   };
 }
 
@@ -70,5 +79,21 @@ export const localDb = {
     data.tryOns.unshift(item);
     saveData(data);
     return item;
+  },
+  getGarmentCategories: () => loadData().categories || [],
+  getUserWishlist: (userId: number) => loadData().wishlists.filter(w => w.userId === userId),
+  addToWishlist: (userId: number, garmentId: number) => {
+    const data = loadData();
+    if (!data.wishlists.some(w => w.userId === userId && w.garmentId === garmentId)) {
+      data.wishlists.push({ userId, garmentId });
+      saveData(data);
+    }
+    return true;
+  },
+  removeFromWishlist: (userId: number, garmentId: number) => {
+    const data = loadData();
+    data.wishlists = data.wishlists.filter(w => !(w.userId === userId && w.garmentId === garmentId));
+    saveData(data);
+    return true;
   }
 };

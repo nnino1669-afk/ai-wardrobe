@@ -183,8 +183,8 @@ export async function deleteTryOn(id: number): Promise<boolean> {
 export async function getGarmentCategories(): Promise<GarmentCategory[]> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get categories: database not available");
-    return [];
+    const { localDb } = await import("./localDb");
+    return localDb.getGarmentCategories() as GarmentCategory[];
   }
 
   try {
@@ -365,8 +365,8 @@ export async function saveStyleProfile(
 export async function addToWishlist(userId: number, garmentId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot add to wishlist: database not available");
-    return false;
+    const { localDb } = await import("./localDb");
+    return localDb.addToWishlist(userId, garmentId);
   }
 
   try {
@@ -384,8 +384,8 @@ export async function addToWishlist(userId: number, garmentId: number): Promise<
 export async function removeFromWishlist(userId: number, garmentId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot remove from wishlist: database not available");
-    return false;
+    const { localDb } = await import("./localDb");
+    return localDb.removeFromWishlist(userId, garmentId);
   }
 
   try {
@@ -403,8 +403,11 @@ export async function removeFromWishlist(userId: number, garmentId: number): Pro
 export async function getUserWishlist(userId: number): Promise<Garment[]> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get wishlist: database not available");
-    return [];
+    const { localDb } = await import("./localDb");
+    const wishlistItems = localDb.getUserWishlist(userId);
+    const allGarments = localDb.getGarments();
+    const garmentIds = new Set(wishlistItems.map((w: any) => w.garmentId));
+    return allGarments.filter((g: any) => garmentIds.has(g.id)) as Garment[];
   }
 
   try {
