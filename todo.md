@@ -174,3 +174,7 @@ Previous catalog work remains tracked above and is not removed.
 - [ ] Integrate Ollama for local text analysis, style recommendations, and chat support
 - [ ] Configure local Python bridge for IDM-VTON execution on RTX 4060 with low-VRAM safeguards
 - [x] Create a comprehensive local setup guide (`LOCAL_SETUP.md`) for VS Code
+
+## Windows Local Startup Fix
+- [x] Replace Unix-only NODE_ENV syntax in the development script
+- [x] Verify `pnpm dev` starts successfully from PowerShell
