@@ -10,6 +10,7 @@ import { cropSelectedPerson } from "./personCrop";
 import { analyzePersonImage } from "./bodyAware";
 import { optimizeUploadedImage } from "./imageOptimization";
 import { prepareBodyAwareInferenceImage } from "./bodyFitPreprocess";
+import { analyzePersonForLock } from "./personLockAnalysis";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -92,6 +93,11 @@ export const appRouter = router({
           const optimized = await optimizeUploadedImage(buffer, format);
 
           // Upload the normalized image to S3
+          let personLockProfile = undefined;
+          if (input.imageType === "person") {
+            personLockProfile = await analyzePersonForLock(optimized.buffer);
+          }
+
           const uploadResult = await storagePut(
             `input-images/${ctx.user.id}/${input.imageType}/${Date.now()}.${optimized.format}`,
             optimized.buffer,
@@ -103,6 +109,7 @@ export const appRouter = router({
             success: true,
             imageUrl: uploadResult.url,
             inferenceUrl,
+            personLockProfile,
           };
         } catch (error) {
           console.error("[TryOn] Error uploading image:", error);
@@ -150,7 +157,12 @@ export const appRouter = router({
             selectedPersonImage ? { x: 0, y: 0, width: 1, height: 1 } : undefined,
           );
 
-          // Call Hugging Face API to generate virtual try-on
+          // Extract person lock profile if available
+          const personLockProfile = await analyzePersonForLock(
+            Buffer.from(await (await fetch(inferencePersonImageUrl)).arrayBuffer()),
+          ).catch(() => undefined);
+
+          // Call Hugging Face API to generate virtual try-on with strict identity lock
           const vtonResult = await generateVirtualTryOn({
             personImageUrl: inferencePersonImageUrl,
             garmentImageUrl,
@@ -158,6 +170,7 @@ export const appRouter = router({
             model: input.model,
             fitProfile,
             bodyFitPlan: input.bodyFitPlan,
+            personLockProfile,
           });
 
           if (!vtonResult.success || !vtonResult.imageUrl) {

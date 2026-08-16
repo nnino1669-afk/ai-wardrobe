@@ -161,3 +161,9 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Upgrade VTON description prompts with precise fabric texture, drape, color accuracy, and boundary instructions
 - [x] Add regression tests ensuring prompts contain realistic texture and fit preservation details
 - [x] Verify the audited wardrobe and save a stable checkpoint
+
+## Identity-Preserving Person Analysis & VTON Pipeline Rework
+- [x] Implement a pre-try-on analysis step extracting pose, silhouette, and face/skin geometry
+- [x] Add explicit preservation constraints to VTON adapter payloads to lock face, hair, and non-garment background
+- [x] Provide clear real-time feedback in the studio when the uploaded photo lacks sufficient resolution or pose clarity for identity lock
+- [x] Add regression tests verifying identity preservation flags in VTON requests

@@ -34,6 +34,8 @@ type GradioResult = {
   data?: unknown[];
 };
 
+import type { PersonLockProfile } from "./personLockAnalysis";
+
 type BodyFitPlan = {
   confidence: number;
   bodyBox: { x: number; y: number; width: number; height: number };
@@ -52,6 +54,7 @@ interface VTONRequest {
   model?: ModelType;
   fitProfile?: PersonFitProfile;
   bodyFitPlan?: BodyFitPlan;
+  personLockProfile?: PersonLockProfile;
 }
 
 interface VTONResponse {
@@ -117,7 +120,7 @@ async function callIdmVton(request: VTONRequest): Promise<string> {
           composite: null,
         },
         garm_img: handle_file(request.garmentImageUrl),
-        garment_des: `${describeClothType(request.clothType)}. Preserve the subject's proportions and selected region; this is a visual estimate, not a physical fit guarantee.${request.fitProfile ? ` Source aspect ratio ${request.fitProfile.aspectRatio}.` : ""}${request.bodyFitPlan ? ` Body landmark calibration: shoulder ratio ${request.bodyFitPlan.shoulderWidth}, hip ratio ${request.bodyFitPlan.hipWidth}, fit scale ${request.bodyFitPlan.fitScale}, vertical anchor ${request.bodyFitPlan.verticalAnchor}.` : ""}`,
+        garment_des: `${describeClothType(request.clothType)}. STRICT IDENTITY LOCK: Preserve the subject's exact face features, skin tone (${request.personLockProfile?.skinToneEstimate ?? "natural"}), hair color (${request.personLockProfile?.hairColorEstimate ?? "natural"}), body pose, head position, and background environment without modification. Only replace the clothing region corresponding to ${request.clothType}.${request.fitProfile ? ` Source aspect ratio ${request.fitProfile.aspectRatio}.` : ""}${request.bodyFitPlan ? ` Body landmark calibration: shoulder ratio ${request.bodyFitPlan.shoulderWidth}, hip ratio ${request.bodyFitPlan.hipWidth}, fit scale ${request.bodyFitPlan.fitScale}, vertical anchor ${request.bodyFitPlan.verticalAnchor}.` : ""}`,
         is_checked: true,
         is_checked_crop: false,
         denoise_steps: 30,

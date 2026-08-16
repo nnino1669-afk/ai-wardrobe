@@ -47,6 +47,7 @@ export default function TryOnStudio() {
   const [isGroupPhoto, setIsGroupPhoto] = useState(false);
   const [processingError, setProcessingError] = useState("");
   const [bodyFitPlan, setBodyFitPlan] = useState<BodyFitPlan | null>(null);
+  const [personLockProfile, setPersonLockProfile] = useState<{ hasClearFaceRegion: boolean; poseConfidence: number; skinToneEstimate: string; hairColorEstimate: string } | null>(null);
 
   const uploadImageMutation = trpc.tryOn.uploadImage.useMutation();
   const processMutation = trpc.tryOn.process.useMutation();
@@ -61,12 +62,28 @@ export default function TryOnStudio() {
     return null;
   }
 
-  const handlePersonImageSelect = (file: File, preview: string) => {
+  const handlePersonImageSelect = async (file: File, preview: string) => {
     setPersonImage(file);
     setPersonPreview(preview);
     setPersonSelector("");
     setBodyFitPlan(null);
     setResultImage("");
+    try {
+      const res = await uploadImageMutation.mutateAsync({
+        imageData: preview,
+        imageType: "person",
+      });
+      if (res.success && res.personLockProfile) {
+        setPersonLockProfile(res.personLockProfile);
+        if (!res.personLockProfile.hasClearFaceRegion) {
+          toast.warning("Photo resolution is low or face region is unclear. For best results, use a well-lit photo.");
+        } else {
+          toast.success(`Identity locked: ${res.personLockProfile.skinToneEstimate} skin tone, ${res.personLockProfile.hairColorEstimate} hair.`);
+        }
+      }
+    } catch {
+      // Non-blocking background analysis fallback
+    }
   };
 
   const handleGarmentSelect = (garment: CatalogGarment) => {
@@ -200,6 +217,20 @@ export default function TryOnStudio() {
                 onImageSelect={handlePersonImageSelect}
                 preview={personPreview}
               />
+
+              {personLockProfile && (
+                <div className="mt-3 rounded-lg border border-border p-3 bg-muted/40 text-xs space-y-1">
+                  <div className="font-semibold flex items-center justify-between">
+                    <span>Identity Lock Active</span>
+                    <span className={personLockProfile.hasClearFaceRegion ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
+                      {personLockProfile.hasClearFaceRegion ? "High Clarity" : "Low Resolution"}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Estimated tone: {personLockProfile.skinToneEstimate} | Hair: {personLockProfile.hairColorEstimate} | Pose confidence: {Math.round(personLockProfile.poseConfidence * 100)}%
+                  </p>
+                </div>
+              )}
 
               {personPreview && (
                 <div className="mt-6">
