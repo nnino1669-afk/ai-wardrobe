@@ -131,13 +131,32 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
  * inference providers can fetch. Absolute HTTP(S) URLs are preserved.
  */
 export async function resolveInferenceUrl(value: string): Promise<string> {
+  // If running locally without Forge/cloud, return absolute local URL for local bridge
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+  const host = process.env.LOCAL_SERVER_HOST || "http://localhost:3000";
+
+  if (!forgeUrl || !forgeKey) {
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+      return value;
+    }
+    if (value.startsWith("/manus-storage/")) {
+      const key = value.slice("/manus-storage/".length);
+      return `${host}/uploads/${key}`;
+    }
+    if (value.startsWith("/uploads/")) {
+      return `${host}${value}`;
+    }
+    return `${host}/uploads/${value.replace(/^\/+/, "")}`;
+  }
+
   try {
     const absolute = new URL(value);
     if (absolute.protocol === "http:" || absolute.protocol === "https:") {
-      return absolute.toString();
+      return value;
     }
   } catch {
-    // Relative storage paths are handled below.
+    // not an absolute URL, resolve as storage path
   }
 
   const storagePrefix = "/manus-storage/";
