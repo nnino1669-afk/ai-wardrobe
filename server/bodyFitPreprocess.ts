@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { storageGetSignedUrl, storagePut, resolveInferenceUrl } from "./storage";
+import { ENV } from "./_core/env";
 
 export type BodyFitPlan = {
   confidence: number;
@@ -47,5 +48,10 @@ export async function prepareBodyAwareInferenceImage(imageUrl: string, plan: Bod
     .png()
     .toBuffer();
   const uploaded = await storagePut(`fitted-person/${userId}/${Date.now()}.png`, fitted, "image/png");
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+  if (!forgeUrl || !forgeKey) {
+    return `data:image/png;base64,${fitted.toString("base64")}`;
+  }
   return storageGetSignedUrl(uploaded.key);
 }
