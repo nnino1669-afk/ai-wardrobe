@@ -25,9 +25,16 @@ export function calculateFittingCrop(imageWidth: number, imageHeight: number, pl
 
 export async function prepareBodyAwareInferenceImage(imageUrl: string, plan: BodyFitPlan, userId: number): Promise<string> {
   const resolvedFetchUrl = await resolveInferenceUrl(imageUrl);
-  const response = await fetch(resolvedFetchUrl);
-  if (!response.ok) throw new Error(`Failed to fetch person image for body-aware preprocessing: ${response.status}`);
-  const input = Buffer.from(await response.arrayBuffer());
+  let input: Buffer;
+  if (resolvedFetchUrl.startsWith("data:")) {
+    const base64Data = resolvedFetchUrl.split(",")[1];
+    if (!base64Data) throw new Error("Invalid data URL format in body-fit preprocessing");
+    input = Buffer.from(base64Data, "base64");
+  } else {
+    const response = await fetch(resolvedFetchUrl);
+    if (!response.ok) throw new Error(`Failed to fetch person image for body-aware preprocessing: ${response.status}`);
+    input = Buffer.from(await response.arrayBuffer());
+  }
   const metadata = await sharp(input).metadata();
   if (!metadata.width || !metadata.height) throw new Error("Person image has no measurable dimensions");
 
