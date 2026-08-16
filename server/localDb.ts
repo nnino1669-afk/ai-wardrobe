@@ -29,8 +29,12 @@ function loadData(): LocalData {
     ],
     tryOns: [],
     garments: [
-      { id: 1, name: "Classic White T-Shirt", category: "upper", imageUrl: "/uploads/garments/tshirt.png", price: 299, rating: 500, reviewCount: 12 },
-      { id: 2, name: "Slim Fit Blue Jeans", category: "lower", imageUrl: "/uploads/garments/jeans.png", price: 599, rating: 480, reviewCount: 8 }
+      { id: 1, name: "Classic White T-Shirt", categoryId: 2, category: "upper", clothType: "upper", imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=80", price: 299, rating: 500, reviewCount: 12, isActive: 1 },
+      { id: 2, name: "Slim Fit Blue Jeans", categoryId: 3, category: "lower", clothType: "lower", imageUrl: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800&auto=format&fit=crop&q=80", price: 599, rating: 480, reviewCount: 8, isActive: 1 },
+      { id: 3, name: "Silk Evening Gown", categoryId: 4, category: "dresses", clothType: "overall", imageUrl: "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&auto=format&fit=crop&q=80", price: 1899, rating: 495, reviewCount: 19, isActive: 1 },
+      { id: 4, name: "Tailored Wool Suit", categoryId: 6, category: "formalwear", clothType: "overall", imageUrl: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&auto=format&fit=crop&q=80", price: 3499, rating: 490, reviewCount: 24, isActive: 1 },
+      { id: 5, name: "Classic Trench Coat", categoryId: 5, category: "outerwear", clothType: "outer", imageUrl: "https://images.unsplash.com/photo-1544441893-675973e31985?w=800&auto=format&fit=crop&q=80", price: 1299, rating: 470, reviewCount: 15, isActive: 1 },
+      { id: 6, name: "Cotton Boxer Briefs", categoryId: 1, category: "underwear", clothType: "inner", imageUrl: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&auto=format&fit=crop&q=80", price: 199, rating: 460, reviewCount: 31, isActive: 1 }
     ],
     wishlists: [],
     outfits: [],
@@ -69,7 +73,14 @@ export const localDb = {
     }
     saveData(data);
   },
-  getGarments: () => loadData().garments,
+  getGarments: () => {
+    const data = loadData();
+    return (data.garments || []).map((g: any) => ({
+      ...g,
+      clothType: g.clothType || (g.category === "lower" ? "lower" : "upper"),
+      isActive: g.isActive ?? 1
+    }));
+  },
   getGarmentById: (id: number) => loadData().garments.find(g => g.id === id),
   getTryOns: (userId: number) => loadData().tryOns.filter(t => t.userId === userId),
   createTryOn: (tryOn: any) => {
