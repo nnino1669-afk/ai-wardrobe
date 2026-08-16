@@ -30,10 +30,11 @@ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserI
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
-    if (ENV.oAuthServerUrl) {
-      console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    } else {
-      console.log("[OAuth] Running in local offline mode (OAUTH_SERVER_URL not configured). Using local dev auth bypass.");
+    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
+    if (!ENV.oAuthServerUrl) {
+      console.warn(
+        "[OAuth] WARNING: OAUTH_SERVER_URL is not set. Running in local development mode without Manus cloud auth."
+      );
     }
   }
 
