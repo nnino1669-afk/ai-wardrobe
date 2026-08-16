@@ -265,6 +265,9 @@ function getBase64Image(result: unknown): string | null {
 }
 
 export function requireInferenceUrl(value: string, fieldName: string): string {
+  if (value.startsWith("data:")) {
+    return value;
+  }
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") {

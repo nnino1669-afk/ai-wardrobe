@@ -48,7 +48,7 @@ describe("Hugging Face Virtual Try-On Integration", () => {
     expect(requireInferenceUrl("https://example.com/person.png", "Person image URL")).toBe("https://example.com/person.png");
     expect(requireInferenceUrl("http://example.com/garment.png", "Garment image URL")).toBe("http://example.com/garment.png");
     expect(() => requireInferenceUrl("/manus-storage/person.png", "Person image URL")).toThrow("valid absolute HTTP(S) URL");
-    expect(() => requireInferenceUrl("data:image/png;base64,abc", "Person image URL")).toThrow("valid absolute HTTP(S) URL");
+    expect(requireInferenceUrl("data:image/png;base64,abc", "Person image URL")).toBe("data:image/png;base64,abc");
   });
 
   it("maps every supported clothing category explicitly", () => {
