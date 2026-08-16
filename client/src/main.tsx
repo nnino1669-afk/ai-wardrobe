@@ -8,22 +8,7 @@ import App from "./App";
 import { startLogin } from "./const";
 import "./index.css";
 
-const analyticsEndpoint = (import.meta.env.VITE_ANALYTICS_ENDPOINT as string | undefined) || "";
-const analyticsWebsiteId = (import.meta.env.VITE_ANALYTICS_WEBSITE_ID as string | undefined) || "";
-const isUnreplacedPlaceholder = (val: string) => !val || val.startsWith("%") || val.includes("%");
-
-if (
-  typeof document !== "undefined" &&
-  !isUnreplacedPlaceholder(analyticsEndpoint) &&
-  !isUnreplacedPlaceholder(analyticsWebsiteId)
-) {
-  const script = document.createElement("script");
-  script.defer = true;
-  const normalizedEndpoint = analyticsEndpoint.endsWith("/") ? analyticsEndpoint.slice(0, -1) : analyticsEndpoint;
-  script.src = `${normalizedEndpoint}/umami`;
-  script.dataset.websiteId = analyticsWebsiteId;
-  document.head.appendChild(script);
-}
+// Analytics injection removed for local offline stability
 
 const queryClient = new QueryClient();
 
