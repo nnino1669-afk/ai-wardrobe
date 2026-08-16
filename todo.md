@@ -168,11 +168,11 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Provide clear real-time feedback in the studio when the uploaded photo lacks sufficient resolution or pose clarity for identity lock
 - [x] Add regression tests verifying identity preservation flags in VTON requests
 
-## Local VS Code & RTX 4060 Migration (Planned / Documented for Local Handover)
-- [ ] Replace Manus Forge S3 storage with local filesystem uploads (`/public/uploads`)
-- [ ] Replace cloud database credentials with local SQLite / MySQL
-- [ ] Integrate Ollama for local text analysis, style recommendations, and chat support
-- [ ] Configure local Python bridge for IDM-VTON execution on RTX 4060 with low-VRAM safeguards
+## Local VS Code & RTX 4060 Migration
+- [x] Replace Manus Forge S3 storage with local filesystem uploads (`/public/uploads`)
+- [x] Replace cloud database credentials with local SQLite / MySQL
+- [x] Integrate Ollama for local text analysis, style recommendations, and chat support
+- [x] Configure local Python bridge for IDM-VTON execution on RTX 4060 with low-VRAM safeguards
 - [x] Create a comprehensive local setup guide (`LOCAL_SETUP.md`) for VS Code
 
 ## Windows Local Startup Fix

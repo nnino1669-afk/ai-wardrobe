@@ -107,8 +107,43 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function callLocalVtonBridge(request: VTONRequest): Promise<string> {
+  const bridgeUrl = process.env.LOCAL_VTON_URL || "http://localhost:8000/v1/vton/try-on";
+  const resp = await fetch(bridgeUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      person_image_url: request.personImageUrl,
+      garment_image_url: request.garmentImageUrl,
+      category: request.clothType,
+      prompt: `${describeClothType(request.clothType)}. RTX 4060 optimized low-VRAM try-on.`,
+      steps: 25,
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => resp.statusText);
+    throw new Error(`Local VTON Bridge error (${resp.status}): ${errText}`);
+  }
+
+  const data = (await resp.json()) as { result_url?: string };
+  if (!data.result_url) {
+    throw new Error("Local VTON Bridge returned no result_url");
+  }
+  return data.result_url;
+}
+
 async function callIdmVton(request: VTONRequest): Promise<string> {
   let lastError: unknown;
+  const useLocal = process.env.USE_LOCAL_VTON === "true";
+
+  if (useLocal) {
+    try {
+      return await callLocalVtonBridge(request);
+    } catch (localErr) {
+      console.warn("[VTON] Local VTON bridge unavailable, falling back to Gradio space:", localErr);
+    }
+  }
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
