@@ -33,7 +33,26 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+
+  // Local filesystem fallback when running offline without Forge credentials
+  if (!forgeUrl || !forgeKey) {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const key = appendHashSuffix(normalizeKey(relKey));
+    const uploadDir = path.resolve(process.cwd(), "public", "uploads");
+    await fs.mkdir(uploadDir, { recursive: true });
+    const filePath = path.join(uploadDir, key);
+    const buffer = typeof data === "string" ? Buffer.from(data, "utf-8") : Buffer.from(data);
+    await fs.writeFile(filePath, buffer);
+    return {
+      key,
+      url: `/uploads/${key}`,
+    };
+  }
+
+  const { forgeUrl: cleanUrl, forgeKey: keyVal } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
 
   // 1. Get presigned PUT URL from Forge
@@ -77,8 +96,18 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
   const key = normalizeKey(relKey);
+
+  if (!forgeUrl || !forgeKey) {
+    if (key.startsWith("http://") || key.startsWith("https://") || key.startsWith("data:")) {
+      return key;
+    }
+    return `/uploads/${key}`;
+  }
+
+  const { forgeUrl: cleanUrl, forgeKey: keyVal } = getForgeConfig();
 
   const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
   getUrl.searchParams.set("path", key);

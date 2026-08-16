@@ -178,3 +178,10 @@ Previous catalog work remains tracked above and is not removed.
 ## Windows Local Startup Fix
 - [x] Replace Unix-only NODE_ENV syntax in the development script
 - [x] Verify `pnpm dev` starts successfully from PowerShell
+
+## Local Runtime Noise Fix
+- [x] Disable unresolved analytics placeholders when local analytics variables are absent
+- [x] Downgrade missing local OAuth configuration to a warning
+
+## Local Storage Fallback
+- [x] Add local filesystem storage fallback in `server/storage.ts` when Forge credentials are absent
