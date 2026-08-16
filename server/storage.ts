@@ -136,10 +136,11 @@ export async function resolveInferenceUrl(value: string): Promise<string> {
   const forgeKey = ENV.forgeApiKey;
   const host = process.env.LOCAL_SERVER_HOST || "http://localhost:3000";
 
+  if (value.startsWith("data:") || value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
   if (!forgeUrl || !forgeKey) {
-    if (value.startsWith("http://") || value.startsWith("https://")) {
-      return value;
-    }
     const cleanKey = value.replace(/^\/+/, "").replace(/^manus-storage\//, "").replace(/^uploads\//, "");
     const pathMod = await import("path");
     const fsMod = await import("fs/promises");
