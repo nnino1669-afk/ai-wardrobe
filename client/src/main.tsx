@@ -10,14 +10,12 @@ import "./index.css";
 
 const analyticsEndpoint = (import.meta.env.VITE_ANALYTICS_ENDPOINT as string | undefined) || "";
 const analyticsWebsiteId = (import.meta.env.VITE_ANALYTICS_WEBSITE_ID as string | undefined) || "";
+const isUnreplacedPlaceholder = (val: string) => !val || val.startsWith("%") || val.includes("%");
+
 if (
   typeof document !== "undefined" &&
-  analyticsEndpoint &&
-  analyticsWebsiteId &&
-  !analyticsEndpoint.startsWith("%") &&
-  !analyticsWebsiteId.startsWith("%") &&
-  !analyticsEndpoint.includes("%") &&
-  !analyticsWebsiteId.includes("%")
+  !isUnreplacedPlaceholder(analyticsEndpoint) &&
+  !isUnreplacedPlaceholder(analyticsWebsiteId)
 ) {
   const script = document.createElement("script");
   script.defer = true;
