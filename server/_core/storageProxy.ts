@@ -10,7 +10,14 @@ export function registerStorageProxy(app: Express) {
     }
 
     if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
-      res.status(500).send("Storage proxy not configured");
+      const path = await import("path");
+      const fs = await import("fs");
+      const localFilePath = path.resolve(process.cwd(), "public", "uploads", key);
+      if (fs.existsSync(localFilePath)) {
+        res.sendFile(localFilePath);
+        return;
+      }
+      res.status(404).send("Local storage file not found");
       return;
     }
 

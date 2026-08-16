@@ -48,7 +48,7 @@ export async function storagePut(
     await fs.writeFile(filePath, buffer);
     return {
       key,
-      url: `/uploads/${key}`,
+      url: `/manus-storage/${key}`,
     };
   }
 
