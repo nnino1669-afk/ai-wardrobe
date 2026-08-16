@@ -21,6 +21,10 @@ class TryOnRequest(BaseModel):
     prompt: str = ""
     steps: int = 25
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "device": DEVICE, "low_vram": LOW_VRAM}
+
 @app.post("/v1/vton/try-on")
 def run_local_tryon(req: TryOnRequest):
     try:
