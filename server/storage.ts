@@ -140,14 +140,18 @@ export async function resolveInferenceUrl(value: string): Promise<string> {
     if (value.startsWith("http://") || value.startsWith("https://")) {
       return value;
     }
-    if (value.startsWith("/manus-storage/")) {
-      const key = value.slice("/manus-storage/".length);
-      return `${host}/uploads/${key}`;
+    const cleanKey = value.replace(/^\/+/, "").replace(/^manus-storage\//, "").replace(/^uploads\//, "");
+    const pathMod = await import("path");
+    const fsMod = await import("fs/promises");
+    const localPath = pathMod.resolve(process.cwd(), "public", "uploads", cleanKey);
+    try {
+      const data = await fsMod.readFile(localPath);
+      const ext = pathMod.extname(cleanKey).toLowerCase();
+      const mime = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
+      return `data:${mime};base64,${data.toString("base64")}`;
+    } catch {
+      return `${host}/manus-storage/${cleanKey}`;
     }
-    if (value.startsWith("/uploads/")) {
-      return `${host}${value}`;
-    }
-    return `${host}/uploads/${value.replace(/^\/+/, "")}`;
   }
 
   try {
