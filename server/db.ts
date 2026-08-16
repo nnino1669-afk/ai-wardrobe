@@ -25,7 +25,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
+    const { localDb } = await import("./localDb");
+    localDb.upsertUser(user);
     return;
   }
 
@@ -80,8 +81,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
+    const { localDb } = await import("./localDb");
+    return localDb.getUserByOpenId(openId);
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
@@ -95,8 +96,8 @@ export async function getUserByOpenId(openId: string) {
 export async function createTryOn(data: InsertTryOn): Promise<TryOn | null> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot create try-on: database not available");
-    return null;
+    const { localDb } = await import("./localDb");
+    return localDb.createTryOn(data) as TryOn;
   }
 
   try {
@@ -118,8 +119,8 @@ export async function createTryOn(data: InsertTryOn): Promise<TryOn | null> {
 export async function getUserTryOns(userId: number, limit: number = 50, offset: number = 0): Promise<TryOn[]> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get try-ons: database not available");
-    return [];
+    const { localDb } = await import("./localDb");
+    return localDb.getTryOns(userId) as TryOn[];
   }
 
   try {
@@ -247,8 +248,8 @@ export async function getGarments(
 ): Promise<Garment[]> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get garments: database not available");
-    return [];
+    const { localDb } = await import("./localDb");
+    return localDb.getGarments() as Garment[];
   }
 
   try {
