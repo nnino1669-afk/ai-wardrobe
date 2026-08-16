@@ -57,7 +57,11 @@ describe("Hugging Face Virtual Try-On Integration", () => {
     const descriptions = categories.map((category) => describeClothType(category));
     expect(mapped).toEqual(["upper_body", "lower_body", "dress", "inner", "upper_body"]);
     expect(descriptions.every((description) => description.length > 20)).toBe(true);
-    expect(describeClothType("outer")).toContain("upper-body layer");
-    expect(describeClothType("outer")).toContain("shoulders");
+    expect(describeClothType("upper")).toContain("fabric texture");
+    expect(describeClothType("upper")).toContain("natural anatomical drape");
+    expect(describeClothType("lower")).toContain("waist fit");
+    expect(describeClothType("overall")).toContain("silhouette drape");
+    expect(describeClothType("inner")).toContain("smooth contouring");
+    expect(describeClothType("outer")).toContain("lapel details");
   });
 });

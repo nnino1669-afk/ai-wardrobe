@@ -155,3 +155,9 @@ Previous catalog work remains tracked above and is not removed.
 - [x] Add regression coverage for outerwear selection and adapter mapping
 - [x] Verify the outerwear flow visually and save a corrected checkpoint
 - [x] Show a dedicated Hugging Face ZeroGPU quota message with retry guidance
+
+## Wardrobe Prompt & Realism Audit
+- [x] Audit all 17 catalog garments and ensure exact color, material, and category alignment
+- [x] Upgrade VTON description prompts with precise fabric texture, drape, color accuracy, and boundary instructions
+- [x] Add regression tests ensuring prompts contain realistic texture and fit preservation details
+- [x] Verify the audited wardrobe and save a stable checkpoint

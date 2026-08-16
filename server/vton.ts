@@ -268,11 +268,11 @@ export async function generateVirtualTryOn(
 
 export function describeClothType(clothType: ClothType): string {
   const descriptions: Record<ClothType, string> = {
-    upper: "upper-body garment such as a shirt, blouse, sweater, or jacket",
-    lower: "lower-body garment such as trousers, jeans, skirt, or shorts",
-    overall: "full outfit or dress covering the main body",
-    inner: "inner layer or underwear garment",
-    outer: "outerwear upper-body layer such as a jacket, coat, or blazer; place it over the visible torso and shoulders",
+    upper: "high-realism upper-body garment matching the reference fabric texture, precise color tone, and natural anatomical drape; wrap seamlessly around the shoulders and torso with realistic folds and lighting",
+    lower: "high-realism lower-body garment matching the reference fabric texture, precise waist fit, and natural leg drape; align cleanly with the subject's hips and stance",
+    overall: "high-realism full-body outfit or dress matching the reference fabric weight, color fidelity, and continuous silhouette drape from shoulders to hem",
+    inner: "high-realism inner layer or underwear garment matching the reference smooth contouring and close fit against the subject's body",
+    outer: "high-realism outerwear upper-body layer such as a jacket, coat, or blazer matching the reference fabric structure and lapel details; place it cleanly over the visible torso and shoulders with natural outerwear volume",
   };
   return descriptions[clothType];
 }
