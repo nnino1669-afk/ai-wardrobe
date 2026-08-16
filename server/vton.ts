@@ -135,13 +135,19 @@ async function callLocalVtonBridge(request: VTONRequest): Promise<string> {
 
 async function callIdmVton(request: VTONRequest): Promise<string> {
   let lastError: unknown;
-  const useLocal = process.env.USE_LOCAL_VTON === "true";
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+  const forceCloud = process.env.FORCE_CLOUD_VTON === "true";
+  const useLocal = process.env.USE_LOCAL_VTON === "true" || (!forgeUrl || !forgeKey) && !forceCloud;
 
   if (useLocal) {
     try {
       return await callLocalVtonBridge(request);
     } catch (localErr) {
-      console.warn("[VTON] Local VTON bridge unavailable, falling back to Gradio space:", localErr);
+      console.warn("[VTON] Local VTON bridge unavailable or not running. To run locally on RTX 4060, start python server/local_vton_server.py. Error:", localErr);
+      if (!forgeUrl || !forgeKey) {
+        throw new Error("Local VTON bridge is not running at http://localhost:8000. Start the Python server locally or configure cloud API credentials.");
+      }
     }
   }
 
