@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { storageGetSignedUrl, storagePut } from "./storage";
+import { storageGetSignedUrl, storagePut, resolveInferenceUrl } from "./storage";
 
 export type BodyFitPlan = {
   confidence: number;
@@ -24,7 +24,8 @@ export function calculateFittingCrop(imageWidth: number, imageHeight: number, pl
 }
 
 export async function prepareBodyAwareInferenceImage(imageUrl: string, plan: BodyFitPlan, userId: number): Promise<string> {
-  const response = await fetch(imageUrl);
+  const resolvedFetchUrl = await resolveInferenceUrl(imageUrl);
+  const response = await fetch(resolvedFetchUrl);
   if (!response.ok) throw new Error(`Failed to fetch person image for body-aware preprocessing: ${response.status}`);
   const input = Buffer.from(await response.arrayBuffer());
   const metadata = await sharp(input).metadata();
