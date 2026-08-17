@@ -16,7 +16,7 @@ class TryOnRequest(BaseModel):
     garment_image_url: str
     category: str = "upper"
     prompt: str = ""
-    steps: int = 20
+    steps: int = 15
 
 @app.get("/health")
 def health_check():
