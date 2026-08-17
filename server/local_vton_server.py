@@ -1,85 +1,101 @@
 import os
 import base64
-import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from PIL import Image
 from io import BytesIO
+from PIL import Image
 
-app = FastAPI(title="AI Wardrobe Local VTON Bridge (RTX 4060 Optimized)")
+app = FastAPI(title="AI Wardrobe Local VTON Proxy (Port 8000 -> 7860)")
 
-LOW_VRAM = os.getenv("LOW_VRAM", "true").lower() == "true"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+GRADIO_URL = os.getenv("GRADIO_URL", "http://127.0.0.1:7860")
 
-print(f"[Local VTON Bridge] Initializing on device: {DEVICE}, Low-VRAM mode: {LOW_VRAM}")
+print(f"[Local VTON Proxy] Initialized. Forwarding try-on requests to Gradio backend at {GRADIO_URL}")
 
 class TryOnRequest(BaseModel):
     person_image_url: str
     garment_image_url: str
-    category: str = "upper_body"
+    category: str = "upper"
     prompt: str = ""
-    steps: int = 30
-
-def decode_image(url_or_data: str) -> Image.Image:
-    if url_or_data.startswith("data:"):
-        header, encoded = url_or_data.split(",", 1)
-        binary = base64.b64decode(encoded)
-        return Image.open(BytesIO(binary)).convert("RGB")
-    elif url_or_data.startswith("http://") or url_or_data.startswith("https://"):
-        import requests
-        resp = requests.get(url_or_data, timeout=30)
-        resp.raise_for_status()
-        return Image.open(BytesIO(resp.content)).convert("RGB")
-    else:
-        # local file path
-        return Image.open(url_or_data).convert("RGB")
+    steps: int = 20
 
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
-        "device": DEVICE,
-        "low_vram": LOW_VRAM,
-        "cuda_available": torch.cuda.is_available(),
-        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None"
+        "proxy_target": GRADIO_URL,
+        "mode": "local_rtx4060_bridge"
     }
 
 @app.post("/v1/vton/try-on")
 def run_local_tryon(req: TryOnRequest):
     try:
-        print(f"[Local VTON] Processing try-on for category: {req.category}")
-        person_img = decode_image(req.person_image_url)
-        garment_img = decode_image(req.garment_image_url)
+        from gradio_client import Client, handle_file
+        import tempfile
 
-        # Check if local IDM-VTON pipeline repository is present
-        idm_repo_path = os.path.join(os.getcwd(), "IDM-VTON")
-        has_local_repo = os.path.exists(idm_repo_path)
+        print(f"[Local VTON Proxy] Connecting to local Gradio instance at {GRADIO_URL}...")
+        client = Client(GRADIO_URL)
 
-        if not has_local_repo:
-            # Try to load via diffusers directly if cached or weights are downloaded
-            try:
-                from diffusers import StableDiffusionXLInpaintPipeline
-                # If weights are not downloaded yet, this will raise
-                model_id = "yisol/IDM-VTON"
-                print(f"[Local VTON] Attempting to load diffusion pipeline from {model_id}...")
-                # For safety on 8GB VRAM RTX 4060, we guide user or run lightweight inference if weights exist
-            except Exception as load_err:
-                print(f"[Local VTON] Local weights not loaded: {load_err}")
+        # Helper to materialize image URLs or base64 into temporary files for gradio_client
+        def prepare_image(url_or_data: str) -> str:
+            if url_or_data.startswith("data:"):
+                header, encoded = url_or_data.split(",", 1)
+                binary = base64.b64decode(encoded)
+                img = Image.open(BytesIO(binary)).convert("RGB")
+            elif url_or_data.startswith("http://") or url_or_data.startswith("https://"):
+                import requests
+                resp = requests.get(url_or_data, timeout=30)
+                resp.raise_for_status()
+                img = Image.open(BytesIO(resp.content)).convert("RGB")
+            else:
+                img = Image.open(url_or_data).convert("RGB")
 
-        # If full IDM-VTON weights are not locally downloaded, return an informative guide
-        # while keeping the data flow intact so person and garment are accepted.
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Local VTON bridge is running on your RTX 4060, but IDM-VTON model weights are not yet downloaded locally. "
-                "To execute real model inference locally, clone https://github.com/yisol/IDM-VTON into your project, "
-                "download the checkpoints into 'ckpt/', or use Hugging Face cloud tokens in app settings."
-            )
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            img.save(tmp.name, "PNG")
+            tmp.close()
+            return tmp.name
+
+        person_path = prepare_image(req.person_image_url)
+        garment_path = prepare_image(req.garment_image_url)
+
+        print("[Local VTON Proxy] Invoking Gradio /tryon prediction...")
+        result = client.predict(
+            dict={
+                "background": handle_file(person_path),
+                "layers": [],
+                "composite": None,
+            },
+            garm_img=handle_file(garment_path),
+            garment_des=req.prompt or "Virtual try-on, RTX 4060 optimized.",
+            is_checked=True,
+            is_checked_crop=False,
+            denoise_steps=req.steps,
+            seed=42,
+            api_name="/tryon"
         )
 
-    except HTTPException:
-        raise
+        # Cleanup temp files
+        try:
+            os.unlink(person_path)
+            os.unlink(garment_path)
+        except Exception:
+            pass
+
+        result_url = None
+        if isinstance(result, (list, tuple)) and len(result) > 0:
+            first = result[0]
+            if isinstance(first, str):
+                result_url = first
+            elif isinstance(first, dict):
+                result_url = first.get("url") or first.get("path")
+
+        if not result_url:
+            raise HTTPException(status_code=500, detail="Local Gradio backend returned no valid image URL")
+
+        print(f"[Local VTON Proxy] Try-on successful! Result URL: {result_url}")
+        return {"result_url": result_url, "success": True}
+
     except Exception as e:
+        print(f"[Local VTON Proxy] Error during proxy try-on: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
